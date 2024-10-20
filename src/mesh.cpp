@@ -44,7 +44,7 @@ void Mesh::definePositionsAndColor()
 
 	// North point
 	definePointPosition(i, 0, 0, 1);
-	defineColor(i, 1, 1, 1);
+	defineColor(i, 0, 0, 1);
 	//std::cout << "First point: " << i / 3 << "; " << m_vertexPositions[i - 3] << ", " << m_vertexPositions[i - 2] << ", " << m_vertexPositions[i - 1] << std::endl;
 
 	std::vector<float> sinTheta(size), cosTheta(size);
@@ -68,15 +68,15 @@ void Mesh::definePositionsAndColor()
 			float y = sinTheta[thetaIndex] * sinPhi[phiIndex];
 			float z = cosTheta[thetaIndex];
 			definePointPosition(i, x, y, z);
-			defineColor(i, z, z, z);
+			defineColor(i, x, y, z);
 
 			//std::cout << "Curr point: " << i / 3 << "; " << m_vertexPositions[i - 3] << ", " << m_vertexPositions[i - 2] << ", " << m_vertexPositions[i - 1] << std::endl;
 		}
 	}
 
 	// South point
-	definePointPosition(i, 0, 0, 1);
-	defineColor(i, 1, 1, 1);
+	definePointPosition(i, 0, 0, -1);
+	defineColor(i, 0, 0, 1);
 	//std::cout << "Last point: " << i / 3 << "; " << m_vertexPositions[i - 3] << ", " << m_vertexPositions[i - 2] << ", " << m_vertexPositions[i - 1] << std::endl;
 }
 
@@ -129,7 +129,8 @@ void Mesh::defineRenderMethod()
 	glBindVertexArray(m_vao);
 
 	size_t vertexBufferSize = sizeof(float) * m_vertexPositions.size(); // Gather the size of the buffer from the CPU-side vector
-	size_t colorBufferSize = sizeof(float) * m_vertexNormals.size(); // Gather the size of the buffer from the CPU-side vector
+	size_t normalBufferSize = sizeof(float) * m_vertexNormals.size(); // Gather the size of the buffer from the CPU-side vector
+	size_t colorBufferSize = sizeof(float) * m_vertexColors.size(); // Gather the size of the buffer from the CPU-side vector
 
 	glGenBuffers(1, &m_posVbo);
 	glBindBuffer(GL_ARRAY_BUFFER, m_posVbo);
@@ -137,11 +138,17 @@ void Mesh::defineRenderMethod()
 	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(GLfloat), 0);
 	glEnableVertexAttribArray(0);
 
-	glGenBuffers(1, &m_colVbo);
-	glBindBuffer(GL_ARRAY_BUFFER, m_colVbo);
-	glBufferData(GL_ARRAY_BUFFER, colorBufferSize, m_vertexNormals.data(), GL_DYNAMIC_READ);
+	glGenBuffers(1, &m_normVbo);
+	glBindBuffer(GL_ARRAY_BUFFER, m_normVbo);
+	glBufferData(GL_ARRAY_BUFFER, normalBufferSize, m_vertexNormals.data(), GL_DYNAMIC_READ);
 	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(GLfloat), 0); // attention: index=1
 	glEnableVertexAttribArray(1);   // attention: index=1
+
+	glGenBuffers(1, &m_colVbo);
+	glBindBuffer(GL_ARRAY_BUFFER, m_colVbo);
+	glBufferData(GL_ARRAY_BUFFER, colorBufferSize, m_vertexColors.data(), GL_DYNAMIC_READ);
+	glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(GLfloat), 0); // attention: index=2
+	glEnableVertexAttribArray(2);   // attention: index=2
 
 
 	size_t indexBufferSize = sizeof(unsigned int) * m_triangleIndices.size();
