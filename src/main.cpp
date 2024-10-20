@@ -52,19 +52,6 @@ GLFWwindow* g_window = nullptr;
 // GPU objects
 GLuint g_program = 0; // A GPU program contains at least a vertex shader and a fragment shader
 
-// OpenGL identifiers
-GLuint g_vao = 0;
-GLuint g_posVbo = 0;
-GLuint g_colVbo = 0;
-GLuint g_ibo = 0;
-
-// All vertex positions packed in one array [x0, y0, z0, x1, y1, z1, ...]
-std::vector<float> g_vertexPositions;
-// All vertex colors packed in one array (rgb)
-std::vector<float> g_vertexColors;
-// All triangle indices packed in one array [v00, v01, v02, v10, v11, v12, ...] with vij the index of j-th vertex of the i-th triangle
-std::vector<unsigned int> g_triangleIndices;
-
 // Basic camera model
 Camera g_camera;
 
@@ -205,90 +192,8 @@ void initGPUprogram() {
 
 // Define your mesh(es) in the CPU memory
 void initCPUgeometry() {
-	g_vertexPositions = {
-		// Position (x, y, z)
-		-1.0f, -1.0f, -1.0f, // 0
-		 1.0f, -1.0f, -1.0f, // 1
-		 1.0f,  1.0f, -1.0f, // 2
-		-1.0f,  1.0f, -1.0f, // 3
-		-0.5f, -0.5f,  0.0f, // 4
-		 0.5f, -0.5f,  0.0f, // 5
-		 0.5f,  0.5f,  0.0f, // 6
-		-0.5f,  0.5f,  0.0f  // 7
-	};
-
-	g_vertexColors = {
-		1.0f, 0.0f, 0.0f,
-		0.0f, 1.0f, 0.0f,
-		0.0f, 0.0f, 1.0f,
-		1.0f, 0.0f, 0.0f,
-		0.0f, 1.0f, 0.0f,
-		0.0f, 0.0f, 1.0f,
-		1.0f, 0.0f, 0.0f,
-		0.0f, 1.0f, 0.0f
-	};
-	g_triangleIndices = {
-		// Front face
-		0, 1, 2,
-		0, 2, 3,
-		// Back face
-		4, 5, 6,
-		4, 6, 7,
-		// Left face
-		0, 3, 7,
-		0, 7, 4,
-		// Right face
-		1, 5, 6,
-		1, 6, 2,
-		// Top face
-		3, 2, 6,
-		3, 6, 7,
-		// Bottom face
-		0, 4, 5,
-		0, 5, 1
-	};
-
 	// Reminder: this is here and not earlier because the program needs to init the shaders 'n stuff.
 	sphereMesh = Mesh::genSphere();
-
-}
-
-
-
-/**
-* GenVertex _vao
-* BindVertex _vao
-* GenBuffer and BindBuffer using _posVbo
-* Unbind at very end
-*/
-
-void initGPUgeometry() {
-	// Create a single handle, vertex array object that contains attributes,
-	// vertex buffer objects (e.g., vertex's position, normal, and color)
-	/*glGenVertexArrays(1, &g_vao);
-	glBindVertexArray(g_vao);
-
-	// Generate a GPU buffer to store the positions of the vertices
-	size_t vertexBufferSize = sizeof(float) * g_vertexPositions.size(); // Gather the size of the buffer from the CPU-side vector
-	size_t colorBufferSize = sizeof(float) * g_vertexColors.size(); // Gather the size of the buffer from the CPU-side vector
-	glGenBuffers(1, &g_posVbo);
-	glBindBuffer(GL_ARRAY_BUFFER, g_posVbo);
-	glBufferData(GL_ARRAY_BUFFER, vertexBufferSize, g_vertexPositions.data(), GL_DYNAMIC_READ);
-	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(GLfloat), 0);
-	glEnableVertexAttribArray(0);
-
-	glGenBuffers(1, &g_colVbo);
-	glBindBuffer(GL_ARRAY_BUFFER, g_colVbo);
-	glBufferData(GL_ARRAY_BUFFER, colorBufferSize, g_vertexColors.data(), GL_DYNAMIC_READ);
-	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(GLfloat), 0); // attention: index=1
-	glEnableVertexAttribArray(1);   // attention: index=1
-
-	// Same for an index buffer object that stores the list of indices of the
-	// triangles forming the mesh
-	size_t indexBufferSize = sizeof(unsigned int) * g_triangleIndices.size();
-	glGenBuffers(1, &g_ibo);
-	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, g_ibo);
-	glBufferData(GL_ELEMENT_ARRAY_BUFFER, indexBufferSize, g_triangleIndices.data(), GL_DYNAMIC_READ);*/
 }
 
 void initCamera() {
@@ -306,7 +211,6 @@ void init() {
 	initOpenGL();
 	initCPUgeometry();
 	initGPUprogram();
-	initGPUgeometry();
 	initCamera();
 }
 
@@ -328,9 +232,6 @@ void render() {
 	glUniformMatrix4fv(glGetUniformLocation(g_program, "projMat"), 1, GL_FALSE, glm::value_ptr(projMatrix)); // compute the projection matrix of the camera and pass it to the GPU program
 
 	sphereMesh->renderMesh();
-
-	glBindVertexArray(g_vao);     // activate the VAO storing geometry data
-	glDrawElements(GL_TRIANGLES, g_triangleIndices.size(), GL_UNSIGNED_INT, 0); // Call for rendering: stream the current GPU geometry through the current GPU program
 }
 
 // Update any accessible variable based on the current time
