@@ -7,6 +7,7 @@
 #include <vector>
 #include <cassert>
 #include <corecrt_math_defines.h>
+#include <dep/glm/glm.hpp>
 
 class Mesh
 {
@@ -22,6 +23,17 @@ public:
 	* @brief Function called during the main rendering loop
 	*/
 	void renderMesh();
+
+	/*
+	* @brief Set the sphere to be one same color.
+	* 
+	* @param red The amount of red. Ranges from 0 to 1 inclusive.
+	* @param green The amount of green. Ranges from 0 to 1 inclusive.
+	* @param blue The amount of blue. Ranges from 0 to 1 inclusive.
+	*/
+	void setUniformColor(float red, float green, float blue);
+
+	void Mesh::transform(glm::mat4 matxTrans);
 
 	/**
 	* @brief Generates a sphere centered at (0,0,0) with sphereRadius 1.
@@ -41,8 +53,12 @@ public:
 		return sharedMeshPointer;
 	}
 
+
 private:
+	// The position of the vertices, not the triangles
 	std::vector<float> m_vertexPositions;
+
+	// The color at the vertices, not the global color of the triangle
 	std::vector<float> m_vertexColors;
 	std::vector<float> m_vertexNormals;
 	std::vector<unsigned int> m_triangleIndices;
@@ -67,7 +83,14 @@ private:
 	*/
 	void definePointPosition(int position, float x, float y, float z);
 
-	void defineColor(int position, float x, float y, float z);
+	/*
+	* @brief Defines a point's color.
+	*
+	* @param red The amount of red. Ranges from 0 to 1 inclusive.
+	* @param green The amount of green. Ranges from 0 to 1 inclusive.
+	* @param blue The amount of blue. Ranges from 0 to 1 inclusive.
+	*/
+	void defineColor(int position, float red, float green, float blue);
 
 	/**
 	* @brief Defines a triangle's vertexes.
@@ -88,6 +111,8 @@ private:
 	* @brief Defines the triangles by defining their points.
 	*/
 	void defineIndices();
+
+	void Mesh::sendVertexShader(std::vector<float> m_vextexInfo, GLuint vbo, int location);
 
 	/*
 	* @brief Defines how the mesh will be displayed on screen.

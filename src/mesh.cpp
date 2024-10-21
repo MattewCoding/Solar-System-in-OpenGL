@@ -16,12 +16,12 @@ void Mesh::definePointPosition(int position, float x, float y, float z)
 	m_vertexNormals[realPos + 2] = z;
 }
 
-void Mesh::defineColor(int position, float x, float y, float z)
+void Mesh::defineColor(int position, float red, float green, float blue)
 {
 	assert(position % 3 == 0);
-	m_vertexColors[position] = x;
-	m_vertexColors[position + 1] = y;
-	m_vertexColors[position + 2] = z;
+	m_vertexColors[position] = red;
+	m_vertexColors[position + 1] = green;
+	m_vertexColors[position + 2] = blue;
 }
 
 void Mesh::defineTrianglePoints(int position, int pt1, int pt2, int pt3)
@@ -45,6 +45,7 @@ void Mesh::definePositionsAndColor()
 	// North point
 	definePointPosition(i, 0, 0, 1);
 	defineColor(i, 0, 0, 1);
+	i += 3;
 	//std::cout << "First point: " << i / 3 << "; " << m_vertexPositions[i - 3] << ", " << m_vertexPositions[i - 2] << ", " << m_vertexPositions[i - 1] << std::endl;
 
 	std::vector<float> sinTheta(size), cosTheta(size);
@@ -123,33 +124,25 @@ void Mesh::defineIndices()
 	//defineTrianglePoints(currFaceVertex, nbPoints - 1, nbPoints - 1 - size, nbPoints - 2 - size + lastTopFV);
 }
 
+void Mesh::sendVertexShader(std::vector<float> m_vextexInfo, GLuint vbo, int location)
+{
+	size_t bufferSize = sizeof(float) * m_vextexInfo.size(); // Gather the size of the buffer from the CPU-side vector
+
+	glGenBuffers(1, &vbo);
+	glBindBuffer(GL_ARRAY_BUFFER, vbo);
+	glBufferData(GL_ARRAY_BUFFER, bufferSize, m_vextexInfo.data(), GL_DYNAMIC_READ);
+	glVertexAttribPointer(location, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(GLfloat), 0);
+	glEnableVertexAttribArray(location);
+}
+
 void Mesh::defineRenderMethod()
 {
 	glGenVertexArrays(1, &m_vao);
 	glBindVertexArray(m_vao);
 
-	size_t vertexBufferSize = sizeof(float) * m_vertexPositions.size(); // Gather the size of the buffer from the CPU-side vector
-	size_t normalBufferSize = sizeof(float) * m_vertexNormals.size(); // Gather the size of the buffer from the CPU-side vector
-	size_t colorBufferSize = sizeof(float) * m_vertexColors.size(); // Gather the size of the buffer from the CPU-side vector
-
-	glGenBuffers(1, &m_posVbo);
-	glBindBuffer(GL_ARRAY_BUFFER, m_posVbo);
-	glBufferData(GL_ARRAY_BUFFER, vertexBufferSize, m_vertexPositions.data(), GL_DYNAMIC_READ);
-	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(GLfloat), 0);
-	glEnableVertexAttribArray(0);
-
-	glGenBuffers(1, &m_normVbo);
-	glBindBuffer(GL_ARRAY_BUFFER, m_normVbo);
-	glBufferData(GL_ARRAY_BUFFER, normalBufferSize, m_vertexNormals.data(), GL_DYNAMIC_READ);
-	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(GLfloat), 0); // attention: index=1
-	glEnableVertexAttribArray(1);   // attention: index=1
-
-	glGenBuffers(1, &m_colVbo);
-	glBindBuffer(GL_ARRAY_BUFFER, m_colVbo);
-	glBufferData(GL_ARRAY_BUFFER, colorBufferSize, m_vertexColors.data(), GL_DYNAMIC_READ);
-	glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(GLfloat), 0); // attention: index=2
-	glEnableVertexAttribArray(2);   // attention: index=2
-
+	sendVertexShader(m_vertexPositions, m_posVbo, 0);
+	sendVertexShader(m_vertexNormals, m_normVbo, 1);
+	sendVertexShader(m_vertexColors, m_colVbo, 2);
 
 	size_t indexBufferSize = sizeof(unsigned int) * m_triangleIndices.size();
 
@@ -185,4 +178,24 @@ void Mesh::renderMesh()
 {
 	glBindVertexArray(m_vao);     // activate the VAO storing geometry data
 	glDrawElements(GL_TRIANGLES, m_triangleIndices.size(), GL_UNSIGNED_INT, 0);
+}
+
+void Mesh::setUniformColor(float red, float green, float blue)
+{
+	for (int i = 0; i < nbPoints * 3; i += 3)
+	{
+		defineColor(i, red, green, blue);
+	}
+	defineRenderMethod(); // have to update the render color
+}
+
+void Mesh::transform(glm::mat4 matxTrans) {
+	for (int i = 0; i < nbPoints * 3; i += 3) {
+		glm::vec4 pointCoord{ m_vertexPositions[i], m_vertexPositions[i + 1], m_vertexPositions[i + 2], 1};
+		pointCoord = matxTrans * pointCoord;
+		m_vertexPositions[i] = pointCoord[0];
+		m_vertexPositions[i + 1] = pointCoord[1];
+		m_vertexPositions[i + 2] = pointCoord[2];
+	}
+	defineRenderMethod(); // have to update positions
 }

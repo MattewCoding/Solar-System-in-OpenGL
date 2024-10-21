@@ -41,10 +41,13 @@
 
 // constants
 const static float kSizeSun = 1;
-const static float kSizeEarth = 0.5;
-const static float kSizeMoon = 0.25;
+const static float kSizeEarth = kSizeSun * 0.5;
+const static float kSizeMoon = kSizeEarth * 0.5;
 const static float kRadOrbitEarth = 10;
 const static float kRadOrbitMoon = 2;
+
+const static float x_sun = -5, y_sun = 0, z_sun = -20;
+const static float x_earth = x_sun + 10, x_moon = x_earth + 2;
 
 // Window parameters
 GLFWwindow* g_window = nullptr;
@@ -57,6 +60,11 @@ Camera g_camera;
 
 // Toy mesh for a sphere
 std::shared_ptr<Mesh> sphereMesh;
+std::shared_ptr<Mesh> sunSphere, earthSphere, moonSphere;
+
+// Translation matrixes
+// For some reason mat4's are transposed, but I guess that's how glm decided to implement this
+glm::mat4 g_sun{ glm::mat4(1.) }, g_earth{ glm::mat4(1.) }, g_moon{ glm::mat4(1.) };
 
 GLuint loadTextureFromFileToGPU(const std::string& filename) {
 	int width, height, numComponents;
@@ -190,10 +198,50 @@ void initGPUprogram() {
 	// TODO: set shader variables, textures, etc.
 }
 
+void printM4(glm::mat4 m)
+{
+	for (int i = 0; i < 4; i++)
+	{
+		for (int j = 0; j < 4; j++)
+		{
+			std::cout << m[j][i] << ", ";
+		}
+		std::cout << std::endl;
+	}
+	std::cout << std::endl << std::endl;
+}
+
 // Define your mesh(es) in the CPU memory
 void initCPUgeometry() {
+	g_sun[0] = glm::vec4(kSizeSun, 0, 0, 0.);
+	g_sun[1] = glm::vec4(0, kSizeSun, 0, 0.);
+	g_sun[2] = glm::vec4(0, 0, kSizeSun, 0.);
+	g_sun[3] = glm::vec4(x_sun, y_sun, z_sun, 1.);
+
+	g_earth[0] = glm::vec4(kSizeEarth, 0, 0, 0.);
+	g_earth[1] = glm::vec4(0, kSizeEarth, 0, 0.);
+	g_earth[2] = glm::vec4(0, 0, kSizeEarth, 0.);
+	g_earth[3] = glm::vec4(x_earth, y_sun, z_sun, 1.);
+
+	g_moon[0] = glm::vec4(kSizeMoon, 0, 0, 0.);
+	g_moon[1] = glm::vec4(0, kSizeMoon, 0, 0.);
+	g_moon[2] = glm::vec4(0, 0, kSizeMoon, 0.);
+	g_moon[3] = glm::vec4(x_moon, y_sun, z_sun, 1.);
+
 	// Reminder: this is here and not earlier because the program needs to init the shaders 'n stuff.
 	sphereMesh = Mesh::genSphere();
+
+	sunSphere = std::make_shared<Mesh>(*sphereMesh);
+	earthSphere = std::make_shared<Mesh>(*sphereMesh);
+	moonSphere = std::make_shared<Mesh>(*sphereMesh);
+
+	sunSphere->setUniformColor(1.f, 1.f, 0.f);
+	earthSphere->setUniformColor(0.f, 1.f, 0.f);
+	moonSphere->setUniformColor(0.f, 0.75f, 1.f);
+
+	sunSphere->transform(g_sun);
+	earthSphere->transform(g_earth);
+	moonSphere->transform(g_moon);
 }
 
 void initCamera() {
@@ -234,7 +282,9 @@ void render() {
 	const glm::vec3 camPosition = g_camera.getPosition();
 	glUniform3f(glGetUniformLocation(g_program, "camPos"), camPosition[0], camPosition[1], camPosition[2]);
 
-	sphereMesh->renderMesh();
+	sunSphere->renderMesh();
+	earthSphere->renderMesh();
+	moonSphere->renderMesh();
 }
 
 // Update any accessible variable based on the current time
