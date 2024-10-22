@@ -136,6 +136,7 @@ void Mesh::defineRenderMethod()
 	sendVertexShader(m_vertexColors, &m_colVbo, 2);
 	sendVertexShader(m_vertexLight, &m_lightVbo, 3);
 	sendVertexShader(m_vertexAmbience, &m_ambiVbo, 4);
+	sendVertexShader(m_vertexTexCoords, &m_texVbo, 5);
 
 	size_t indexBufferSize = sizeof(unsigned int) * m_triangleIndices.size();
 
@@ -156,6 +157,7 @@ void Mesh::init(const size_t resolution)
 	m_vertexNormals = std::vector<glm::vec3>(nbPoints);
 	m_vertexLight = std::vector<glm::vec3>(nbPoints);
 	m_vertexAmbience = std::vector<glm::vec3>(nbPoints);
+	m_vertexTexCoords = std::vector<glm::vec3>(nbPoints);
 
 	// nb_of_pts_in_triangle * each_rect_has_two_triangles * pts_excl_poles
 	m_triangleIndices = std::vector<unsigned int>(3 * 2 * (nbPoints - 2));

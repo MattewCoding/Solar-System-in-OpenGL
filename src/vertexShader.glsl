@@ -5,6 +5,7 @@ layout(location=1) in vec3 vNormal;
 layout(location=2) in vec3 vColor;
 layout(location=3) in vec3 vLight;
 layout(location=4) in vec3 vAmbient;
+layout(location=5) in vec2 vTexCoord;
 
 // Sent to fragmentShader
 out vec3 fPosition;
@@ -12,6 +13,7 @@ out vec3 fNormal;
 out vec3 fColor;
 out vec3 fLight;
 out vec3 fAmbient;
+out vec2 fTexCoord;
 
 uniform mat4 viewMat, projMat;
 
@@ -23,4 +25,5 @@ void main() {
         fColor = vColor;
         fLight = vLight;
         fAmbient = vAmbient;
+        fTexCoord = vTexCoord;
 }

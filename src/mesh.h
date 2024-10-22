@@ -67,8 +67,6 @@ public:
 	*/
 	void setupSun();
 
-	glm::vec3 getSelfCenter();
-
 	/**
 	* @brief Generates a sphere centered at (0,0,0) with sphereRadius 1.
 	*
@@ -76,17 +74,19 @@ public:
 	*
 	* @return The initialized Mesh
 	*/
-	inline static std::shared_ptr<Mesh> genSphere(float x, float y, float z, const size_t resolution = 4)
+	inline static std::shared_ptr<Mesh> genSphere(float x, float y, float z, const size_t resolution = 16)
 	{
 		// NOTE: This method is only called once to create a sphere, then rendered three times in different positions
 		// With translations
 
 		// Shared pointer used to auto free the pointer when no longer used
-		std::shared_ptr<Mesh> sharedMeshPointer = std::make_shared<Mesh>() ;
+		std::shared_ptr<Mesh> sharedMeshPointer = std::make_shared<Mesh>();
 		sharedMeshPointer->init(resolution);
 		sharedMeshPointer->setSunCenter(x, y, z);
 		return sharedMeshPointer;
 	}
+
+	glm::vec3 getSelfCenter();
 
 private:
 	// The position of the vertices, not the triangles
@@ -97,6 +97,7 @@ private:
 	std::vector<glm::vec3> m_vertexNormals;
 	std::vector<glm::vec3> m_vertexLight;
 	std::vector<glm::vec3> m_vertexAmbience;
+	std::vector<glm::vec3> m_vertexTexCoords;
 
 	std::vector<unsigned int> m_triangleIndices;
 	GLuint m_vao = 0;
@@ -106,6 +107,7 @@ private:
 	GLuint m_colVbo = 0;
 	GLuint m_lightVbo = 0;
 	GLuint m_ambiVbo = 0;
+	GLuint m_texVbo = 0;
 
 	GLuint m_ibo = 0;
 

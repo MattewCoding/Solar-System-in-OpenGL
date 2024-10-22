@@ -70,18 +70,26 @@ glm::mat4 g_sun{ glm::mat4(kSizeSun) }, g_earth{ glm::mat4(kSizeEarth) }, g_moon
 // Rotation matrixes
 glm::mat4 earth_rot{ glm::mat4(1.) }, moon_rot{ glm::mat4(1.) };
 
-GLuint loadTextureFromFileToGPU(const std::string& filename) {
-	int width, height, numComponents;
-	// Loading the image in CPU memory using stb_image
-	unsigned char* data = stbi_load(
-		filename.c_str(),
-		&width, &height,
-		&numComponents, // 1 for a 8 bit grey-scale image, 3 for 24bits RGB image, 4 for 32bits RGBA image
-		0);
+// Texture vars
+GLuint g_earthTexID;
 
-	GLuint texID;
-	// TODO: create a texture and upload the image data in GPU memory using
-	// glGenTextures, glBindTexture, glTexParameteri, and glTexImage2D
+GLuint loadTextureFromFileToGPU(const std::string& filename) {
+	// Loading the image in CPU memory using stb_image
+	int width, height, numComponents;
+	unsigned char* data = stbi_load(filename.c_str(), &width, &height, &numComponents, 0);
+
+	GLuint texID; // OpenGL texture identifier
+	glGenTextures(1, &texID); // generate an OpenGL texture container
+	glBindTexture(GL_TEXTURE_2D, texID); // activate the texture
+
+	// Setup the texture filtering option and repeat mode; check www.opengl.org for details.
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+
+	// Fill the GPU texture with the data stored in the CPU image
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
 
 	// Free useless CPU memory
 	stbi_image_free(data);
@@ -198,6 +206,9 @@ void initGPUprogram() {
 	loadShader(g_program, GL_FRAGMENT_SHADER, backoutPath + "fragmentShader.glsl");
 	glLinkProgram(g_program); // The main GPU program is ready to be handle streams of polygons
 
+	g_earthTexID = loadTextureFromFileToGPU("media/earth.jpg");
+	glUniform1i(glGetUniformLocation(g_program, "material.albedoTex"), 0);
+
 	glUseProgram(g_program);
 	// TODO: set shader variables, textures, etc.
 }
@@ -291,6 +302,9 @@ void render() {
 
 	const glm::vec3 camPosition = g_camera.getPosition();
 	glUniform3f(glGetUniformLocation(g_program, "camPos"), camPosition[0], camPosition[1], camPosition[2]);
+
+	glActiveTexture(GL_TEXTURE0);
+	glBindTexture(GL_TEXTURE_2D, g_earthTexID);
 
 	sunSphere->renderMesh();
 	earthSphere->renderMesh();

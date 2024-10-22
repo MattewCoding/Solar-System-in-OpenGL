@@ -1,16 +1,28 @@
 #version 330 core	     // Minimal GL version support expected from the GPU
 
+struct Material {
+	// ...
+	sampler2D albedoTex; // texture unit, relate to glActivateTexture(GL_TEXTURE0 + i)
+};
+
 uniform vec3 camPos;
+uniform Material material;
 
 in vec3 fPosition; // Position of the vertex
 in vec3 fNormal; // Input from vertexShader = has to have same name as vertexShader's out var
 in vec3 fColor;
 in vec3 fLight;
 in vec3 fAmbient;
+in vec2 fTexCoord;
 
 out vec4 color; // Shader output: the color response attached to this fragment
 
 void main() {
+
+	//////    Texture stuff    //////
+	//vec3 texColor = texture(material.albedoTex, fTexCoord).rgb // Sample texture color
+
+	//////     Light stuff     //////
 	vec3 n = normalize(fNormal);
 
 	// ref: left-right, bottom-top, back-front
