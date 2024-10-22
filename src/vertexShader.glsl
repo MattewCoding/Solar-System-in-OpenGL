@@ -3,9 +3,15 @@
 layout(location=0) in vec3 vPosition;
 layout(location=1) in vec3 vNormal;
 layout(location=2) in vec3 vColor;
-out vec3 fColor; // Sent to fragmentSahder
-out vec3 fPosition; // Sent to fragmentShader
-out vec3 fNormal; // Sent to fragmentShader
+layout(location=3) in vec3 vLight;
+layout(location=4) in vec3 vAmbient;
+
+// Sent to fragmentShader
+out vec3 fPosition;
+out vec3 fNormal; 
+out vec3 fColor;
+out vec3 fLight;
+out vec3 fAmbient;
 
 uniform mat4 viewMat, projMat;
 
@@ -15,4 +21,6 @@ void main() {
         fPosition = vPosition;
         fNormal = vNormal;
         fColor = vColor;
+        fLight = vLight;
+        fAmbient = vAmbient;
 }

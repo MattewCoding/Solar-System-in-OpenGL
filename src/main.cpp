@@ -45,9 +45,10 @@ const static float kSizeEarth = kSizeSun * 0.5;
 const static float kSizeMoon = kSizeEarth * 0.5;
 const static float kRadOrbitEarth = 10;
 const static float kRadOrbitMoon = 2;
+const static float earthRotationSpeed = 60.*500.;
 
-const static float x_sun = -5, y_sun = 0, z_sun = -20;
-const static float x_earth = x_sun + 10, x_moon = x_earth + 2;
+const static float x_sun = 0, y_sun = 0, z_sun = 0;
+const static float x_earth = x_sun + kRadOrbitEarth, x_moon = x_earth + kRadOrbitMoon;
 
 // Window parameters
 GLFWwindow* g_window = nullptr;
@@ -64,7 +65,10 @@ std::shared_ptr<Mesh> sunSphere, earthSphere, moonSphere;
 
 // Translation matrixes
 // For some reason mat4's are transposed, but I guess that's how glm decided to implement this
-glm::mat4 g_sun{ glm::mat4(1.) }, g_earth{ glm::mat4(1.) }, g_moon{ glm::mat4(1.) };
+glm::mat4 g_sun{ glm::mat4(kSizeSun) }, g_earth{ glm::mat4(kSizeEarth) }, g_moon{ glm::mat4(kSizeMoon) };
+
+// Rotation matrixes
+glm::mat4 earth_rot{ glm::mat4(1.) }, moon_rot{ glm::mat4(1.) };
 
 GLuint loadTextureFromFileToGPU(const std::string& filename) {
 	int width, height, numComponents;
@@ -213,23 +217,27 @@ void printM4(glm::mat4 m)
 
 // Define your mesh(es) in the CPU memory
 void initCPUgeometry() {
-	g_sun[0] = glm::vec4(kSizeSun, 0, 0, 0.);
-	g_sun[1] = glm::vec4(0, kSizeSun, 0, 0.);
-	g_sun[2] = glm::vec4(0, 0, kSizeSun, 0.);
 	g_sun[3] = glm::vec4(x_sun, y_sun, z_sun, 1.);
-
-	g_earth[0] = glm::vec4(kSizeEarth, 0, 0, 0.);
-	g_earth[1] = glm::vec4(0, kSizeEarth, 0, 0.);
-	g_earth[2] = glm::vec4(0, 0, kSizeEarth, 0.);
 	g_earth[3] = glm::vec4(x_earth, y_sun, z_sun, 1.);
-
-	g_moon[0] = glm::vec4(kSizeMoon, 0, 0, 0.);
-	g_moon[1] = glm::vec4(0, kSizeMoon, 0, 0.);
-	g_moon[2] = glm::vec4(0, 0, kSizeMoon, 0.);
 	g_moon[3] = glm::vec4(x_moon, y_sun, z_sun, 1.);
 
+	const float cosRot = (float) cos(M_PI / earthRotationSpeed);
+	const float sinRot = (float) sin(M_PI / earthRotationSpeed);
+
+	earth_rot[0] = glm::vec4(cosRot, sinRot, 0, 0);
+	earth_rot[1] = glm::vec4(-sinRot, cosRot, 0, 0);
+	earth_rot[3] = glm::vec4(x_sun * (1 - cosRot) + y_sun * sinRot, y_sun * (1 - cosRot) - x_sun * sinRot, 0, 1);
+
+	// Rotation half as long
+	// y_sun = y_earth
+	const float cosRotFast = (float)cos(2 * M_PI / earthRotationSpeed);
+	const float sinRotFast = (float)sin(2 * M_PI / earthRotationSpeed);
+	moon_rot[0] = glm::vec4(cosRotFast, sinRotFast, 0, 0);
+	moon_rot[1] = glm::vec4(-sinRotFast, cosRotFast, 0, 0);
+	moon_rot[3] = glm::vec4(x_earth * (1 - cosRotFast) + y_sun * sinRotFast, y_sun * (1 - cosRotFast) - x_earth * sinRotFast, 0, 1);
+
 	// Reminder: this is here and not earlier because the program needs to init the shaders 'n stuff.
-	sphereMesh = Mesh::genSphere();
+	sphereMesh = Mesh::genSphere(x_sun, y_sun, z_sun);
 
 	sunSphere = std::make_shared<Mesh>(*sphereMesh);
 	earthSphere = std::make_shared<Mesh>(*sphereMesh);
@@ -239,9 +247,11 @@ void initCPUgeometry() {
 	earthSphere->setUniformColor(0.f, 1.f, 0.f);
 	moonSphere->setUniformColor(0.f, 0.75f, 1.f);
 
-	sunSphere->transform(g_sun);
-	earthSphere->transform(g_earth);
-	moonSphere->transform(g_moon);
+	sunSphere->move(g_sun);
+	earthSphere->move(g_earth);
+	moonSphere->move(g_moon);
+
+	sunSphere->setupSun();
 }
 
 void initCamera() {
@@ -249,9 +259,9 @@ void initCamera() {
 	glfwGetWindowSize(g_window, &width, &height);
 	g_camera.setAspectRatio(static_cast<float>(width) / static_cast<float>(height));
 
-	g_camera.setPosition(glm::vec3(0.0, 0.0, 3.0));
-	g_camera.setNear(0.1);
-	g_camera.setFar(80.1);
+	g_camera.setPosition(glm::vec3(0.0, 0.0, 30.0));
+	g_camera.setNear((const float)0.1);
+	g_camera.setFar((const float)80.1);
 }
 
 void init() {
@@ -287,10 +297,35 @@ void render() {
 	moonSphere->renderMesh();
 }
 
+float fps = 60;
+float lastUpdateTime = 0;
+
+bool isabout(float x, float y)
+{	
+	return (abs(x - y) < 0.01);
+}
+
 // Update any accessible variable based on the current time
 void update(const float currentTimeInSec) {
-	// std::cout << currentTimeInSec << std::endl;
+	if ((currentTimeInSec - lastUpdateTime) * fps > 1)
+	{
+		// A clearer but more costly way of doing it
+		/*// Orbiting
+		earthSphere->rotateAroundBody(sunSphere.get(), earthRotationSpeed);
+		// The moon moves with the Earth. The Earth moves with the sun. By the transitive property, the moon moves with the sun.
+		moonSphere->rotateAroundBody(sunSphere.get(), earthRotationSpeed);
+		moonSphere->rotateAroundBody(earthSphere.get(), earthRotationSpeed / 2);
 
+		// Rotation around self
+		earthSphere->rotate(earthSphere.get(), earthRotationSpeed / 2);
+		moonSphere->rotate(moonSphere.get(), earthRotationSpeed / 2);*/
+
+		// Less function calls but less understandable
+		earthSphere->rotate(sunSphere.get(), earthRotationSpeed);
+		// The moon moves with the Earth. The Earth moves with the sun. By the transitive property, the moon moves with the sun.
+		moonSphere->rotate(sunSphere.get(), earthRotationSpeed);
+		moonSphere->rotate(earthSphere.get(), earthRotationSpeed / 2);
+	}
 }
 
 int main(int argc, char** argv) {

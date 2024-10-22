@@ -3,31 +3,20 @@
 
 void Mesh::definePointPosition(int position, float x, float y, float z)
 {
-	assert(position % 3 == 0);
-	int realPos = position;// *3;
+	int realPos = position;
 
-	m_vertexPositions[realPos] = x;
-	m_vertexNormals[realPos] = x;
-
-	m_vertexPositions[realPos + 1] = y;
-	m_vertexNormals[realPos + 1] = y;
-
-	m_vertexPositions[realPos + 2] = z;
-	m_vertexNormals[realPos + 2] = z;
+	m_vertexPositions[realPos] = glm::vec3(x,y,z);
+	m_vertexNormals[realPos] = glm::vec3(x,y,z);
 }
 
 void Mesh::defineColor(int position, float red, float green, float blue)
 {
-	assert(position % 3 == 0);
-	m_vertexColors[position] = red;
-	m_vertexColors[position + 1] = green;
-	m_vertexColors[position + 2] = blue;
+	m_vertexColors[position] = glm::vec3(red, green, blue);
 }
 
 void Mesh::defineTrianglePoints(int position, int pt1, int pt2, int pt3)
 {
-	assert(position % 3 == 0);
-	int realPos = position;// *3;
+	int realPos = position;
 	m_triangleIndices[realPos] = pt1;
 	m_triangleIndices[realPos + 1] = pt2;
 	m_triangleIndices[realPos + 2] = pt3;
@@ -35,6 +24,8 @@ void Mesh::defineTrianglePoints(int position, int pt1, int pt2, int pt3)
 
 void Mesh::definePositionsAndColor()
 {
+	self_center = glm::vec3(0., 0., 0.);
+
 	int i = 0;
 
 	//std::cout << "Nb of points: " << nbPoints << std::endl;
@@ -45,7 +36,7 @@ void Mesh::definePositionsAndColor()
 	// North point
 	definePointPosition(i, 0, 0, 1);
 	defineColor(i, 0, 0, 1);
-	i += 3;
+	i++;
 	//std::cout << "First point: " << i / 3 << "; " << m_vertexPositions[i - 3] << ", " << m_vertexPositions[i - 2] << ", " << m_vertexPositions[i - 1] << std::endl;
 
 	std::vector<float> sinTheta(size), cosTheta(size);
@@ -63,7 +54,7 @@ void Mesh::definePositionsAndColor()
 
 	for (thetaIndex = 1; thetaIndex < size - 1; thetaIndex++)
 	{
-		for (phiIndex = 0; phiIndex < size; phiIndex++, i += 3)
+		for (phiIndex = 0; phiIndex < size; phiIndex++, i++)
 		{
 			float x = sinTheta[thetaIndex] * cosPhi[phiIndex];
 			float y = sinTheta[thetaIndex] * sinPhi[phiIndex];
@@ -124,14 +115,14 @@ void Mesh::defineIndices()
 	//defineTrianglePoints(currFaceVertex, nbPoints - 1, nbPoints - 1 - size, nbPoints - 2 - size + lastTopFV);
 }
 
-void Mesh::sendVertexShader(std::vector<float> m_vextexInfo, GLuint vbo, int location)
+void Mesh::sendVertexShader(std::vector<glm::vec3> m_vextexInfo, GLuint *vbo, int location)
 {
-	size_t bufferSize = sizeof(float) * m_vextexInfo.size(); // Gather the size of the buffer from the CPU-side vector
+	size_t bufferSize = sizeof(glm::vec3) * m_vextexInfo.size(); // Gather the size of the buffer from the CPU-side vector
 
-	glGenBuffers(1, &vbo);
-	glBindBuffer(GL_ARRAY_BUFFER, vbo);
-	glBufferData(GL_ARRAY_BUFFER, bufferSize, m_vextexInfo.data(), GL_DYNAMIC_READ);
-	glVertexAttribPointer(location, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(GLfloat), 0);
+	glGenBuffers(1, vbo);
+	glBindBuffer(GL_ARRAY_BUFFER, *vbo);
+	glBufferData(GL_ARRAY_BUFFER, bufferSize, m_vextexInfo.data(), GL_DYNAMIC_DRAW);
+	glVertexAttribPointer(location, 3, GL_FLOAT, GL_FALSE, sizeof(glm::vec3), 0);
 	glEnableVertexAttribArray(location);
 }
 
@@ -140,25 +131,31 @@ void Mesh::defineRenderMethod()
 	glGenVertexArrays(1, &m_vao);
 	glBindVertexArray(m_vao);
 
-	sendVertexShader(m_vertexPositions, m_posVbo, 0);
-	sendVertexShader(m_vertexNormals, m_normVbo, 1);
-	sendVertexShader(m_vertexColors, m_colVbo, 2);
+	sendVertexShader(m_vertexPositions, &m_posVbo, 0);
+	sendVertexShader(m_vertexNormals, &m_normVbo, 1);
+	sendVertexShader(m_vertexColors, &m_colVbo, 2);
+	sendVertexShader(m_vertexLight, &m_lightVbo, 3);
+	sendVertexShader(m_vertexAmbience, &m_ambiVbo, 4);
 
 	size_t indexBufferSize = sizeof(unsigned int) * m_triangleIndices.size();
 
 	glGenBuffers(1, &m_ibo);
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_ibo);
-	glBufferData(GL_ELEMENT_ARRAY_BUFFER, indexBufferSize, m_triangleIndices.data(), GL_DYNAMIC_READ);
+	glBufferData(GL_ELEMENT_ARRAY_BUFFER, indexBufferSize, m_triangleIndices.data(), GL_DYNAMIC_DRAW);
+
+	glBindVertexArray(0); // Unbinding
 }
 
-void Mesh::init(int resolution)
+void Mesh::init(const size_t resolution)
 {
 	size = resolution;
 
 	nbPoints = size * (size - 2) + 2;
-	m_vertexPositions = std::vector<float>(nbPoints * 3);
-	m_vertexColors = std::vector<float>(nbPoints * 3);
-	m_vertexNormals = std::vector<float>(nbPoints * 3);
+	m_vertexPositions = std::vector<glm::vec3>(nbPoints);
+	m_vertexColors = std::vector<glm::vec3>(nbPoints);
+	m_vertexNormals = std::vector<glm::vec3>(nbPoints);
+	m_vertexLight = std::vector<glm::vec3>(nbPoints);
+	m_vertexAmbience = std::vector<glm::vec3>(nbPoints);
 
 	// nb_of_pts_in_triangle * each_rect_has_two_triangles * pts_excl_poles
 	m_triangleIndices = std::vector<unsigned int>(3 * 2 * (nbPoints - 2));
@@ -178,24 +175,96 @@ void Mesh::renderMesh()
 {
 	glBindVertexArray(m_vao);     // activate the VAO storing geometry data
 	glDrawElements(GL_TRIANGLES, m_triangleIndices.size(), GL_UNSIGNED_INT, 0);
+	glBindVertexArray(0); // Unbinding
 }
 
 void Mesh::setUniformColor(float red, float green, float blue)
 {
-	for (int i = 0; i < nbPoints * 3; i += 3)
+	for (int i = 0; i < nbPoints; i++)
 	{
 		defineColor(i, red, green, blue);
 	}
 	defineRenderMethod(); // have to update the render color
 }
 
-void Mesh::transform(glm::mat4 matxTrans) {
-	for (int i = 0; i < nbPoints * 3; i += 3) {
-		glm::vec4 pointCoord{ m_vertexPositions[i], m_vertexPositions[i + 1], m_vertexPositions[i + 2], 1};
-		pointCoord = matxTrans * pointCoord;
-		m_vertexPositions[i] = pointCoord[0];
-		m_vertexPositions[i + 1] = pointCoord[1];
-		m_vertexPositions[i + 2] = pointCoord[2];
+void Mesh::updateRendering(std::vector<glm::vec3> m_vextexInfo, GLuint *vbo)
+{
+	size_t bufferSize = sizeof(glm::vec3) * m_vextexInfo.size(); // Gather the size of the buffer from the CPU-side vector
+
+	glBindBuffer(GL_ARRAY_BUFFER, *vbo);
+	glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(glm::vec3) * m_vextexInfo.size(), m_vextexInfo.data());
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
+}
+
+void Mesh::rotateAroundBody(Mesh* orbitingBody, float rotationSpeed)
+{
+	transform(glm::mat4(1.), this, -rotationSpeed);
+	transform(glm::mat4(1.), orbitingBody, rotationSpeed);
+}
+
+void Mesh::rotate(Mesh* orbitingBody, float rotationSpeed)
+{
+	transform(glm::mat4(1.), orbitingBody, rotationSpeed);
+}
+
+void Mesh::move(glm::mat4 matxMove)
+{
+	transform(matxMove, NULL, 0);
+}
+
+void Mesh::transform(glm::mat4 matxTrans, Mesh* orbitingBody, float rotationSpeed)
+{
+	if (orbitingBody != NULL)
+	{
+		const float cosRot = (float)cos(M_PI / rotationSpeed);
+		const float sinRot = (float)sin(M_PI / rotationSpeed);
+
+		// Ensure rotating around body center, not world center
+		matxTrans[0] = glm::vec4(cosRot, sinRot, 0, 0);
+		matxTrans[1] = glm::vec4(-sinRot, cosRot, 0, 0);
+		//transform(glm::mat4(1.), NULL, -rotationSpeed);
+		glm::vec3 orbitingBodyCenter = orbitingBody->getSelfCenter();
+		matxTrans[3] = glm::vec4(orbitingBodyCenter.x * (1 - cosRot) + orbitingBodyCenter.y * sinRot, orbitingBodyCenter.y * (1 - cosRot) - orbitingBodyCenter.x * sinRot, 0, 1);
+		
 	}
-	defineRenderMethod(); // have to update positions
+
+	self_center = glm::vec3(matxTrans * glm::vec4{ self_center, 1 });
+
+	for (int i = 0; i < nbPoints; i++) {
+		glm::vec4 pointCoord{ m_vertexPositions[i], 1};
+		pointCoord = matxTrans * pointCoord;
+		m_vertexPositions[i] = glm::vec3(pointCoord);
+		m_vertexNormals[i] = glm::vec3(pointCoord) - self_center;
+
+		m_vertexLight[i] = glm::vec3(
+			sun_center.x - pointCoord.x,
+			sun_center.y - pointCoord.y,
+			sun_center.z - pointCoord.z
+		);
+	}
+
+	//std::cout << m_vertexPositions[0].x << ", " << m_vertexPositions[0].y << ", " << m_vertexPositions[0].z << "; ";
+	//std::cout << m_vertexNormals[0].x << ", " << m_vertexNormals[0].y << ", " << m_vertexNormals[0].z << std::endl;
+
+	glBindVertexArray(m_vao);
+	updateRendering(m_vertexPositions, &m_posVbo);
+	updateRendering(m_vertexNormals, &m_normVbo);
+	updateRendering(m_vertexLight, &m_lightVbo);
+	glBindVertexArray(0); // Unbinding
+}
+
+void Mesh::setupSun()
+{
+	for (int i = 0; i < nbPoints; i++) {
+		m_vertexAmbience[i] = glm::vec3(1., 1., 0.);
+	}
+
+	glBindVertexArray(m_vao);
+	updateRendering(m_vertexAmbience, &m_ambiVbo);
+	glBindVertexArray(0); // Unbinding
+}
+
+glm::vec3 Mesh::getSelfCenter()
+{
+	return self_center;
 }
