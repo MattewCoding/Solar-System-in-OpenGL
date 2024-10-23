@@ -1,13 +1,18 @@
 #ifndef INCLUDE_MESH
 #define INCLUDE_MESH
 
+#include "meshConstants.h"
+
+#include <dep/glm/glm.hpp>
+#include <dep/glm/gtc/matrix_transform.hpp>
+#include <dep/glm/gtc/type_ptr.hpp>
+
 #include <iostream>
 #include <glad/gl.h>
 #include <memory>
 #include <vector>
 #include <cassert>
 #include <corecrt_math_defines.h>
-#include <dep/glm/glm.hpp>
 
 class Mesh
 {
@@ -51,9 +56,10 @@ public:
 	* For rotation purely around the orbitingBody, try rotateAroundBody()
 	* 
 	* @param orbitingBody The body the current body is orbiting around
+	* @param axisVector The axis to spin around
 	* @param rotationSpeed The speed of rotation around the body
 	*/
-	void rotate(Mesh* orbitingBody, float rotationSpeed);
+	void rotate(Mesh* orbitingBody, glm::vec3 axisVector, float rotationSpeed);
 
 	/*
 	* @brief Move a body linearlly
@@ -74,7 +80,7 @@ public:
 	*
 	* @return The initialized Mesh
 	*/
-	inline static std::shared_ptr<Mesh> genSphere(float x, float y, float z, const size_t resolution = 16)
+	inline static std::shared_ptr<Mesh> genSphere(float x, float y, float z, const size_t resolution = 5)
 	{
 		// NOTE: This method is only called once to create a sphere, then rendered three times in different positions
 		// With translations
@@ -88,6 +94,10 @@ public:
 
 	glm::vec3 getSelfCenter();
 
+	bool equalish(float a, float b);
+	void printV3(glm::vec3 v3);
+	void printVSub(glm::vec3 a, glm::vec3 b);
+
 private:
 	// The position of the vertices, not the triangles
 	std::vector<glm::vec3> m_vertexPositions;
@@ -97,7 +107,7 @@ private:
 	std::vector<glm::vec3> m_vertexNormals;
 	std::vector<glm::vec3> m_vertexLight;
 	std::vector<glm::vec3> m_vertexAmbience;
-	std::vector<glm::vec3> m_vertexTexCoords;
+	std::vector<glm::vec2> m_vertexTexCoords;
 
 	std::vector<unsigned int> m_triangleIndices;
 	GLuint m_vao = 0;
@@ -147,10 +157,13 @@ private:
 	*/
 	void defineTrianglePoints(int position, int pt1, int pt2, int pt3);
 
+	void defineTextureCoord(int position, float x, float y);
+
 	/**
 	* @brief Sets up the position and the colors of the points in the mesh
 	*/
 	void definePositionsAndColor();
+	void defineTextureCoords();
 
 	/*
 	* @brief Defines the triangles by defining their points.
@@ -164,7 +177,8 @@ private:
 	* @param vbo The pointer to the VBO value
 	* @param location The channel that vertexShader will recieve this information on.
 	*/
-	void sendVertexShader(std::vector<glm::vec3> m_vextexInfo, GLuint *vbo, int location);
+	template <typename T>
+	void sendVertexShader(std::vector<T> m_vextexInfo, GLuint *vbo, int location);
 
 	/*
 	* @brief Defines/updates how the mesh will be displayed on screen.
@@ -191,6 +205,8 @@ private:
 	* @param orbitingBody The body the current body is orbiting around
 	* @param rotationSpeed The speed of rotation around the body
 	*/
-	void transform(glm::mat4 initMatx, Mesh* orbitingBody, float rotationSpeed);
+	void transform(glm::mat4 matxTrans, Mesh* orbitingBody, glm::vec3 axisVector, float rotationSpeed);
+	glm::mat4 rotateAroundAxis(const glm::vec3& axis, float angle);
+	glm::mat4 translate(const glm::vec3& position);
 };
 #endif
