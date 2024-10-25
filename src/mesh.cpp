@@ -148,14 +148,14 @@ void Mesh::defineIndices()
 	}
 	defineTrianglePoints(currFaceVertex, nbPoints - 1, nbPoints - 1 - sizePlusOne, nbPoints - 2 - sizePlusOne + lastTopFV);
 
-	for (int i = 0; i < m_triangleIndices.size(); i++)
+	/*for (int i = 0; i < m_triangleIndices.size(); i++)
 	{
 		std::cout << m_triangleIndices[i] << ", ";
 		if (i % 3 == 2)
 		{
 			std::cout << std::endl;
 		}
-	}
+	}*/
 
 }
 

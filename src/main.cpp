@@ -42,8 +42,8 @@
 
 
 // constants
-const static float kSizeSun = 5;
-const static float kSizeEarth = 5;// kSizeSun * 0.5;
+const static float kSizeSun = 1;
+const static float kSizeEarth = kSizeSun * 0.5;
 const static float kSizeMoon = kSizeEarth * 0.5;
 const static float kRadOrbitEarth = 10;
 const static float kRadOrbitMoon = 2;
@@ -327,11 +327,11 @@ void update(const float currentTimeInSec) {
 		//moonSphere->rotate(moonSphere.get(), earthRotationSpeed / 2);
 
 		// Less function calls but less understandable
-		//earthSphere->rotate(sunSphere.get(), Y_ROTATION_VECTOR, earthRotationSpeed);
-		earthSphere->rotate(earthSphere.get(), glm::vec3(10.0,23.5,0.0), earthRotationSpeed*5);
+		earthSphere->rotate(sunSphere.get(), Y_ROTATION_VECTOR, earthRotationSpeed);
+		earthSphere->rotate(earthSphere.get(), glm::vec3(10.0,23.5,0.0), earthRotationSpeed);
 		// The moon moves with the Earth. The Earth moves with the sun. By the transitive property, the moon moves with the sun.
-		//moonSphere->rotate(sunSphere.get(), Y_ROTATION_VECTOR, earthRotationSpeed);
-		//moonSphere->rotate(earthSphere.get(), Y_ROTATION_VECTOR, earthRotationSpeed / 2);
+		moonSphere->rotate(sunSphere.get(), Y_ROTATION_VECTOR, earthRotationSpeed);
+		moonSphere->rotate(earthSphere.get(), Y_ROTATION_VECTOR, earthRotationSpeed / 2);
 	}
 }
 
