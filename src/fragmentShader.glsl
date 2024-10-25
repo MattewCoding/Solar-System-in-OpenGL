@@ -10,7 +10,6 @@ uniform Material material;
 
 in vec3 fPosition; // Position of the vertex
 in vec3 fNormal; // Input from vertexShader = has to have same name as vertexShader's out var
-in vec3 fColor;
 in vec3 fLight;
 in vec3 fAmbient;
 in vec2 fTexCoord;
@@ -18,7 +17,6 @@ in vec2 fTexCoord;
 out vec4 color; // Shader output: the color response attached to this fragment
 
 void main() {
-
 	//////    Texture stuff    //////
 	vec3 texColor = texture(material.albedoTex, fTexCoord).rgb; // Sample texture color
 
@@ -27,7 +25,6 @@ void main() {
 
 	// ref: left-right, bottom-top, back-front
 	// right hand
-	//vec3 l = normalize(fLight);
 	vec3 l = normalize(vec3(0.0, 0.0, 1.0));
 
 	vec3 v = normalize(camPos - fPosition);
@@ -40,6 +37,5 @@ void main() {
 	vec3 specular = pow(max(dot(v, r), 0.0), 1) * vec3(1.0, 1.0, 1.0) * texColor;
 
 	color = vec4(ambient + diffuse + specular, 1.0); // Building RGBA from RGB
-	//color = vec4(fTexCoord, 0.0, 1.0); // Visualize UVs
 
 }

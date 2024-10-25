@@ -9,11 +9,6 @@ void Mesh::definePointPosition(int position, float x, float y, float z)
 	m_vertexNormals[realPos] = glm::vec3(x,y,z);
 }
 
-void Mesh::defineColor(int position, float red, float green, float blue)
-{
-	m_vertexColors[position] = glm::vec3(red, green, blue);
-}
-
 void Mesh::defineTrianglePoints(int position, int pt1, int pt2, int pt3)
 {
 	int realPos = position;
@@ -32,17 +27,12 @@ void Mesh::definePositionsAndColor()
 	self_center = glm::vec3(0., 0., 0.);
 
 	int i = 0;
-
-	//std::cout << "Nb of points: " << nbPoints << std::endl;
-
 	int thetaIndex = 0;
 	int phiIndex = 0;
 
 	// North point
 	definePointPosition(i, 0, 0, 1);
-	defineColor(i, 0, 0, 1);
 	i++;
-	//std::cout << "First point: " << i / 3 << "; " << m_vertexPositions[i - 3] << ", " << m_vertexPositions[i - 2] << ", " << m_vertexPositions[i - 1] << std::endl;
 
 	const int sizePlusOne = size + 1;
 	std::vector<float> sinTheta(sizePlusOne), cosTheta(sizePlusOne);
@@ -71,13 +61,11 @@ void Mesh::definePositionsAndColor()
 			float y = sinTheta[thetaIndex] * sinPhi[phiIndex];
 			float z = cosTheta[thetaIndex];
 			definePointPosition(i, x, y, z);
-			defineColor(i, x, y, z);
 		}
 	}
 
 	// South point
 	definePointPosition(i, 0, 0, -1);
-	defineColor(i, 0, 0, 1);
 }
 
 void Mesh::defineTextureCoords()
@@ -97,20 +85,12 @@ void Mesh::defineTextureCoords()
 		}
 	}
 	defineTextureCoord(index, 0.5, 1.0);
-
-	//std::cout << m_vertexTexCoords.size() <<"; " << m_vertexPositions.size() << std::endl;
-
-	/*for (int i = 0; i < m_vertexTexCoords.size(); i++)
-	{
-		//printV2(m_vertexTexCoords[i]); PRINT("\n\t\t\t\t\t"); printV3(m_vertexPositions[i]); PRINT(std::endl);
-	}
-	std::cout << std::endl;*/
 }
 
 void Mesh::defineIndices()
 {
 	// Top part
-	int currFaceVertex = 0; // currFace = (int)(currFaceVertex/3);
+	int currFaceVertex = 0;
 	int lastTopFV = size * 3;
 	while (currFaceVertex < lastTopFV)
 	{
@@ -137,7 +117,6 @@ void Mesh::defineIndices()
 
 	// Bottom part
 	lastTopFV = (3 * 2 * size * (size - 2) - currFaceVertex) / 3;
-	//std::cout << currFaceVertex << "; " << 3 * 2 * ((size) * (size - 2) + 2 - 2) << std::endl;
 
 	// Note: This is DELIBERATELY backwards 'cause it's facing AWAY from the screen
 	for (int i = 0; i < lastTopFV - 1; i++)
@@ -147,15 +126,6 @@ void Mesh::defineIndices()
 		currFaceVertex += 3;
 	}
 	defineTrianglePoints(currFaceVertex, nbPoints - 1, nbPoints - 1 - sizePlusOne, nbPoints - 2 - sizePlusOne + lastTopFV);
-
-	/*for (int i = 0; i < m_triangleIndices.size(); i++)
-	{
-		std::cout << m_triangleIndices[i] << ", ";
-		if (i % 3 == 2)
-		{
-			std::cout << std::endl;
-		}
-	}*/
 
 }
 
@@ -178,20 +148,10 @@ void Mesh::defineRenderMethod()
 
 	sendVertexShader(m_vertexPositions, &m_posVbo, 0);
 	sendVertexShader(m_vertexNormals, &m_normVbo, 1);
-	sendVertexShader(m_vertexColors, &m_colVbo, 2);
+
 	sendVertexShader(m_vertexLight, &m_lightVbo, 3);
 	sendVertexShader(m_vertexAmbience, &m_ambiVbo, 4);
 	sendVertexShader(m_vertexTexCoords, &m_texVbo, 5);
-
-	/*for (int i = 0; i < m_triangleIndices.size(); i++)
-	{
-		std::cout << m_triangleIndices[i] << ", ";
-		if ((i % 3) == 2)
-		{
-			std::cout << std::endl;
-		}
-	}
-	std::cout << std::endl;*/
 
 	size_t indexBufferSize = sizeof(unsigned int) * m_triangleIndices.size();
 
@@ -208,13 +168,10 @@ void Mesh::init(const size_t resolution)
 
 	nbPoints = (size + 1) * (size - 2) + 2;
 	m_vertexPositions = std::vector<glm::vec3>(nbPoints);
-	m_vertexColors = std::vector<glm::vec3>(nbPoints);
 	m_vertexNormals = std::vector<glm::vec3>(nbPoints);
 	m_vertexLight = std::vector<glm::vec3>(nbPoints);
 	m_vertexAmbience = std::vector<glm::vec3>(nbPoints);
-	//m_vertexTexCoords = std::vector<glm::vec2>(nbPoints);
 
-	// nb_of_pts_in_triangle * each_rect_has_two_triangles * pts_excl_poles
 	// size = 3 * 2 * ( nbPoints - n-2 overlapping points - 2 pole points )
 	m_triangleIndices = std::vector<unsigned int>(3 * 2 * size * (size - 2));
 
@@ -222,12 +179,6 @@ void Mesh::init(const size_t resolution)
 	defineTextureCoords();
 	defineIndices();
 	defineRenderMethod();
-
-	/*for (int i = 0; i < 3 * 2 * (nbPoints - 2); i++)
-	{
-		if (i % 3 == 0) std::cout << std::endl;
-		std::cout << m_triangleIndices[i] << " ";
-	}*/
 }
 
 void Mesh::renderMesh()
@@ -235,15 +186,6 @@ void Mesh::renderMesh()
 	glBindVertexArray(m_vao);     // activate the VAO storing geometry data
 	glDrawElements(GL_TRIANGLES, m_triangleIndices.size(), GL_UNSIGNED_INT, 0);
 	glBindVertexArray(0); // Unbinding
-}
-
-void Mesh::setUniformColor(float red, float green, float blue)
-{
-	for (int i = 0; i < nbPoints; i++)
-	{
-		defineColor(i, red, green, blue);
-	}
-	defineRenderMethod();
 }
 
 void Mesh::updateRendering(std::vector<glm::vec3> m_vextexInfo, GLuint *vbo)
@@ -320,24 +262,4 @@ void Mesh::setupSun()
 glm::vec3 Mesh::getSelfCenter()
 {
 	return self_center;
-}
-
-bool Mesh::equalish(float a, float b)
-{
-	return abs(a - b) < 0.0001;
-}
-
-void Mesh::printV2(glm::vec2 v2)
-{
-	std::cout << v2.x << "\t" << v2.y;
-}
-
-void Mesh::printV3(glm::vec3 v3)
-{
-	std::cout << v3.x << "\t" << v3.y << "\t" << v3.z;
-}
-
-void Mesh::printVSub(glm::vec3 a, glm::vec3 b)
-{
-	printV3(a-b); PRINT(" = "); printV3(a); PRINT(" - "); printV3(b); PRINT(": ");
 }

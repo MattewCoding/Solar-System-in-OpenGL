@@ -42,7 +42,7 @@
 
 
 // constants
-const static float kSizeSun = 1;
+const static float kSizeSun = 3;
 const static float kSizeEarth = kSizeSun * 0.5;
 const static float kSizeMoon = kSizeEarth * 0.5;
 const static float kRadOrbitEarth = 10;
@@ -242,9 +242,11 @@ void initCPUgeometry() {
 	earthSphere = std::make_shared<Mesh>(*sphereMesh);
 	moonSphere = std::make_shared<Mesh>(*sphereMesh);
 
-	sunSphere->setUniformColor(1.f, 1.f, 0.f);
-	earthSphere->setUniformColor(0.f, 1.f, 0.f);
-	moonSphere->setUniformColor(0.f, 0.75f, 1.f);
+	// This shouldn't be necessary because genSphere's init() already calls this,
+	// But for some reason it needs to be called again
+	sunSphere->defineRenderMethod();
+	earthSphere->defineRenderMethod();
+	moonSphere->defineRenderMethod();
 
 	sunSphere->move(g_sun);
 	earthSphere->move(g_earth);

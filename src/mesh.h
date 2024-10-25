@@ -30,15 +30,6 @@ public:
 	void renderMesh();
 
 	/*
-	* @brief Set the sphere to be one same color.
-	* 
-	* @param red The amount of red. Ranges from 0 to 1 inclusive.
-	* @param green The amount of green. Ranges from 0 to 1 inclusive.
-	* @param blue The amount of blue. Ranges from 0 to 1 inclusive.
-	*/
-	void setUniformColor(float red, float green, float blue);
-
-	/*
 	* @brief Rotate around a body.
 	*
 	* Note that this rotation is only around the orbitingBody and not the body itself.
@@ -53,18 +44,19 @@ public:
 	* @brief Rotate around a body.
 	* 
 	* Note that this rotation is both around the orbitingBody and the body itself.
-	* For rotation purely around the orbitingBody, try rotateAroundBody()
+	* For rotation purely around the orbitingBody, try rotateAroundBody().
 	* 
-	* @param orbitingBody The body the current body is orbiting around
+	* @param *orbitingBody The pointer to the body the current body is orbiting around
 	* @param axisVector The axis to spin around
 	* @param rotationSpeed The speed of rotation around the body
 	*/
 	void rotate(Mesh* orbitingBody, glm::vec3 axisVector, float rotationSpeed);
 
 	/*
-	* @brief Move a body linearlly
+	* @brief Move a body linearly. rotate() also 
 	* 
 	* @param matxMove The transformation matrix describing how to move the body
+	* @param update Whether or not to update the data sent to vertexShader.glsl
 	*/
 	void move(glm::mat4 matxMove, bool update=true);
 
@@ -72,6 +64,11 @@ public:
 	* @brief Function that sets up the sun-specific parameters.
 	*/
 	void setupSun();
+
+	/*
+	* @brief Defines how the mesh will be displayed on screen.
+	*/
+	void defineRenderMethod();
 
 	/**
 	* @brief Generates a sphere centered at (0,0,0) with sphereRadius 1.
@@ -82,7 +79,7 @@ public:
 	*/
 	inline static std::shared_ptr<Mesh> genSphere(float x, float y, float z, const size_t resolution = 5)
 	{
-		// NOTE: This method is only called once to create a sphere, then rendered three times in different positions
+		// This method is only called once to create a sphere, then rendered three times in different positions
 		// With translations
 
 		// Shared pointer used to auto free the pointer when no longer used
@@ -94,17 +91,11 @@ public:
 
 	glm::vec3 getSelfCenter();
 
-	bool equalish(float a, float b);
-	void printV2(glm::vec2 v2);
-	void printV3(glm::vec3 v3);
-	void printVSub(glm::vec3 a, glm::vec3 b);
-
 private:
 	// The position of the vertices, not the triangles
 	std::vector<glm::vec3> m_vertexPositions;
 
 	// The color at the vertices, not the global color of the triangle
-	std::vector<glm::vec3> m_vertexColors;
 	std::vector<glm::vec3> m_vertexNormals;
 	std::vector<glm::vec3> m_vertexLight;
 	std::vector<glm::vec3> m_vertexAmbience;
@@ -115,7 +106,6 @@ private:
 
 	GLuint m_posVbo = 0;
 	GLuint m_normVbo = 0;
-	GLuint m_colVbo = 0;
 	GLuint m_lightVbo = 0;
 	GLuint m_ambiVbo = 0;
 	GLuint m_texVbo = 0;
@@ -138,15 +128,6 @@ private:
 	* @param z The point's z-coordinate.
 	*/
 	void definePointPosition(int position, float x, float y, float z);
-
-	/*
-	* @brief Defines a point's color.
-	*
-	* @param red The amount of red. Ranges from 0 to 1 inclusive.
-	* @param green The amount of green. Ranges from 0 to 1 inclusive.
-	* @param blue The amount of blue. Ranges from 0 to 1 inclusive.
-	*/
-	void defineColor(int position, float red, float green, float blue);
 
 	/**
 	* @brief Defines a triangle's vertexes.
@@ -187,11 +168,6 @@ private:
 	void sendVertexShader(std::vector<T> m_vextexInfo, GLuint *vbo, int location);
 
 	/*
-	* @brief Defines how the mesh will be displayed on screen.
-	*/
-	void defineRenderMethod();
-
-	/*
 	* @brief Update the data being sent to vertexShader.glsl
 	* 
 	* @param m_vertexInfo The data replacing the old data being sent to the vertex shader.
@@ -212,11 +188,15 @@ private:
 	* @brief A general purpose function for applying (or creating) a transformation matrix.
 	* 
 	* This function serves to either apply a translation matrix, or create and apply a rotation matrix around a point.
-	* Note that, due to implementation, a pointer to NULL assumes a translation matrix is being applied.
+	* Note that a pointer to NULL assumes a translation matrix is being applied.
 	* 
-	* @param matxMove The transformation matrix describing how to move the body
-	* @param orbitingBody The body the current body is orbiting around
-	* @param rotationSpeed The speed of rotation around the body
+	* The update parameter is used when rotating; to avoid unexpected rotations, the body is moved
+	* 
+	* @param matxTrans The transformation matrix describing how to move the body
+	* @param *orbitingBody The pointer to the body the current body is orbiting around
+	* @param axisVector The axis the body orbits around
+	* @param rotationSpeed The speed of rotation around the orbiting body
+	* @param update Whether or not to update the data sent to vertexShader.glsl
 	*/
 	void transform(glm::mat4 matxTrans, Mesh* orbitingBody, glm::vec3 axisVector, float rotationSpeed, bool update);
 };
