@@ -23,7 +23,7 @@
 #include "stb_image.h"
 #include "camera.h"
 #include "mesh.h"
-#include "meshConstants.h"
+#include "meshUtility.h"
 
 #include <glad/gl.h>
 #include <GLFW/glfw3.h>
@@ -43,7 +43,7 @@
 
 // constants
 const static float kSizeSun = 5;
-const static float kSizeEarth = kSizeSun * 0.5;
+const static float kSizeEarth = 5;// kSizeSun * 0.5;
 const static float kSizeMoon = kSizeEarth * 0.5;
 const static float kRadOrbitEarth = 10;
 const static float kRadOrbitMoon = 2;
@@ -82,7 +82,7 @@ float fps = 60, lastUpdateTime = 0;
 
 GLuint loadTextureFromFileToGPU(const std::string& filename) {
 	// Loading the image in CPU memory using stb_image
-	std::cout << "Loading " << backoutPath + filename << "..." << std::endl;
+	//std::cout << "Loading " << backoutPath + filename << "..." << std::endl;
 
 	int width, height, numComponents;
 	unsigned char* data = stbi_load((backoutPath + filename).c_str(), &width, &height, &numComponents, 0);
@@ -108,7 +108,7 @@ GLuint loadTextureFromFileToGPU(const std::string& filename) {
 	// Free useless CPU memory
 	stbi_image_free(data);
 	glBindTexture(GL_TEXTURE_2D, 0); // unbind the texture
-	std::cout << filename << " loaded." << std::endl;
+	//std::cout << filename << " loaded." << std::endl;
 
 	return texID;
 }
@@ -254,6 +254,8 @@ void initCPUgeometry() {
 	earthSphere->rotate(earthSphere.get(), Y_ROTATION_VECTOR, -2.5);
 	moonSphere->rotate(moonSphere.get(), X_ROTATION_VECTOR, -2);
 
+	earthSphere->rotate(earthSphere.get(), Z_ROTATION_VECTOR, -7.65957);
+
 	sunSphere->setupSun();
 }
 
@@ -273,8 +275,6 @@ void init() {
 	initCPUgeometry();
 	initGPUprogram();
 	initCamera();
-
-	std::cout << g_earthTexID << "; " << g_moonTexID << std::endl;
 }
 
 void clear() {
@@ -323,15 +323,15 @@ void update(const float currentTimeInSec) {
 		moonSphere->rotateAroundBody(earthSphere.get(), earthRotationSpeed / 2);
 		*/
 		// Rotation around self
-		earthSphere->rotate(earthSphere.get(), Y_ROTATION_VECTOR, -earthRotationSpeed / 2);
+		//earthSphere->rotate(earthSphere.get(), Y_ROTATION_VECTOR, -earthRotationSpeed / 2);
 		//moonSphere->rotate(moonSphere.get(), earthRotationSpeed / 2);
 
 		// Less function calls but less understandable
-		//earthSphere->rotate(sunSphere.get(), earthRotationSpeed);
-		//earthSphere->rotate(earthSphere.get(), earthRotationSpeed);
+		//earthSphere->rotate(sunSphere.get(), Y_ROTATION_VECTOR, earthRotationSpeed);
+		earthSphere->rotate(earthSphere.get(), glm::vec3(10.0,23.5,0.0), earthRotationSpeed*5);
 		// The moon moves with the Earth. The Earth moves with the sun. By the transitive property, the moon moves with the sun.
-		//moonSphere->rotate(sunSphere.get(), earthRotationSpeed);
-		//moonSphere->rotate(earthSphere.get(), earthRotationSpeed / 2);
+		//moonSphere->rotate(sunSphere.get(), Y_ROTATION_VECTOR, earthRotationSpeed);
+		//moonSphere->rotate(earthSphere.get(), Y_ROTATION_VECTOR, earthRotationSpeed / 2);
 	}
 }
 

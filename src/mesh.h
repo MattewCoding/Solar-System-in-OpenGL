@@ -1,7 +1,7 @@
 #ifndef INCLUDE_MESH
 #define INCLUDE_MESH
 
-#include "meshConstants.h"
+#include "meshUtility.h"
 
 #include <dep/glm/glm.hpp>
 #include <dep/glm/gtc/matrix_transform.hpp>
@@ -66,7 +66,7 @@ public:
 	* 
 	* @param matxMove The transformation matrix describing how to move the body
 	*/
-	void move(glm::mat4 matxMove);
+	void move(glm::mat4 matxMove, bool update=true);
 
 	/*
 	* @brief Function that sets up the sun-specific parameters.
@@ -95,6 +95,7 @@ public:
 	glm::vec3 getSelfCenter();
 
 	bool equalish(float a, float b);
+	void printV2(glm::vec2 v2);
 	void printV3(glm::vec3 v3);
 	void printVSub(glm::vec3 a, glm::vec3 b);
 
@@ -163,6 +164,10 @@ private:
 	* @brief Sets up the position and the colors of the points in the mesh
 	*/
 	void definePositionsAndColor();
+
+	/**
+	* @brief Associates the texture to the vertex
+	*/
 	void defineTextureCoords();
 
 	/*
@@ -170,20 +175,28 @@ private:
 	*/
 	void defineIndices();
 
+	
 	/**
 	* @brief Send a vector list to the vertexShader.glsl for processing.
 	* 
 	* @param m_vertexInfo The vector list
-	* @param vbo The pointer to the VBO value
+	* @param *vbo The pointer to the VBO value
 	* @param location The channel that vertexShader will recieve this information on.
 	*/
 	template <typename T>
 	void sendVertexShader(std::vector<T> m_vextexInfo, GLuint *vbo, int location);
 
 	/*
-	* @brief Defines/updates how the mesh will be displayed on screen.
+	* @brief Defines how the mesh will be displayed on screen.
 	*/
 	void defineRenderMethod();
+
+	/*
+	* @brief Update the data being sent to vertexShader.glsl
+	* 
+	* @param m_vertexInfo The data replacing the old data being sent to the vertex shader.
+	* @param *vbo The pointer associated with the location transmitting the old data.
+	*/
 	void updateRendering(std::vector<glm::vec3> m_vextexInfo, GLuint *vbo);
 
 	/*
@@ -205,8 +218,6 @@ private:
 	* @param orbitingBody The body the current body is orbiting around
 	* @param rotationSpeed The speed of rotation around the body
 	*/
-	void transform(glm::mat4 matxTrans, Mesh* orbitingBody, glm::vec3 axisVector, float rotationSpeed);
-	glm::mat4 rotateAroundAxis(const glm::vec3& axis, float angle);
-	glm::mat4 translate(const glm::vec3& position);
+	void transform(glm::mat4 matxTrans, Mesh* orbitingBody, glm::vec3 axisVector, float rotationSpeed, bool update);
 };
 #endif

@@ -27,8 +27,8 @@ void main() {
 
 	// ref: left-right, bottom-top, back-front
 	// right hand
-	vec3 l = normalize(fLight);
-	//vec3 l = normalize(vec3(0.0, 0.0, 1.0));
+	//vec3 l = normalize(fLight);
+	vec3 l = normalize(vec3(0.0, 0.0, 1.0));
 
 	vec3 v = normalize(camPos - fPosition);
 
@@ -40,4 +40,6 @@ void main() {
 	vec3 specular = pow(max(dot(v, r), 0.0), 1) * vec3(1.0, 1.0, 1.0) * texColor;
 
 	color = vec4(ambient + diffuse + specular, 1.0); // Building RGBA from RGB
+	//color = vec4(fTexCoord, 0.0, 1.0); // Visualize UVs
+
 }
