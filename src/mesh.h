@@ -31,20 +31,8 @@ public:
 
 	/*
 	* @brief Rotate around a body.
-	*
-	* Note that this rotation is only around the orbitingBody and not the body itself.
-	* For rotation around the orbitingBody and itself, try rotate()
-	*
-	* @param orbitingBody The body the current body is orbiting around
-	* @param rotationSpeed The speed of rotation around the body
-	*/
-	void rotateAroundBody(Mesh* orbitingBody, float rotationSpeed);
-
-	/*
-	* @brief Rotate around a body.
 	* 
 	* Note that this rotation is both around the orbitingBody and the body itself.
-	* For rotation purely around the orbitingBody, try rotateAroundBody().
 	* 
 	* @param *orbitingBody The pointer to the body the current body is orbiting around
 	* @param axisVector The axis to spin around
@@ -56,9 +44,8 @@ public:
 	* @brief Move a body linearly. rotate() also 
 	* 
 	* @param matxMove The transformation matrix describing how to move the body
-	* @param update Whether or not to update the data sent to vertexShader.glsl
 	*/
-	void move(glm::mat4 matxMove, bool update=true);
+	void move(glm::mat4 matxMove);
 
 	/*
 	* @brief Function that sets up the sun-specific parameters.
@@ -77,7 +64,7 @@ public:
 	*
 	* @return The initialized Mesh
 	*/
-	inline static std::shared_ptr<Mesh> genSphere(float x, float y, float z, const size_t resolution = 5)
+	inline static std::shared_ptr<Mesh> genSphere(float x, float y, float z, const size_t resolution = 16)
 	{
 		// This method is only called once to create a sphere, then rendered three times in different positions
 		// With translations
@@ -89,7 +76,12 @@ public:
 		return sharedMeshPointer;
 	}
 
-	glm::vec3 getSelfCenter();
+	/*
+	* @brief Get the center of the body.
+	* 
+	* @return The coordinate of the center of the body.
+	*/
+	glm::vec3 getSelfCenter() const;
 
 private:
 	// The position of the vertices, not the triangles
@@ -187,17 +179,10 @@ private:
 	/*
 	* @brief A general purpose function for applying (or creating) a transformation matrix.
 	* 
-	* This function serves to either apply a translation matrix, or create and apply a rotation matrix around a point.
-	* Note that a pointer to NULL assumes a translation matrix is being applied.
-	* 
-	* The update parameter is used when rotating; to avoid unexpected rotations, the body is moved
+	* This function serves to either apply a translation matrix, apply a rotation matrix around an axis.
 	* 
 	* @param matxTrans The transformation matrix describing how to move the body
-	* @param *orbitingBody The pointer to the body the current body is orbiting around
-	* @param axisVector The axis the body orbits around
-	* @param rotationSpeed The speed of rotation around the orbiting body
-	* @param update Whether or not to update the data sent to vertexShader.glsl
 	*/
-	void transform(glm::mat4 matxTrans, Mesh* orbitingBody, glm::vec3 axisVector, float rotationSpeed, bool update);
+	void transform(glm::mat4 matxTrans);
 };
 #endif

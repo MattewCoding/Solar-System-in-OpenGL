@@ -242,8 +242,8 @@ void initCPUgeometry() {
 	earthSphere = std::make_shared<Mesh>(*sphereMesh);
 	moonSphere = std::make_shared<Mesh>(*sphereMesh);
 
-	// This shouldn't be necessary because genSphere's init() already calls this,
-	// But for some reason it needs to be called again
+	// Workaround because appearently calling this method in genSphere()'s init()
+	// Doesn't actually work	
 	sunSphere->defineRenderMethod();
 	earthSphere->defineRenderMethod();
 	moonSphere->defineRenderMethod();
@@ -317,18 +317,6 @@ void render() {
 void update(const float currentTimeInSec) {
 	if ((currentTimeInSec - lastUpdateTime) * fps > 1)
 	{
-		// A clearer but more costly way of doing it
-		/*// Orbiting
-		earthSphere->rotateAroundBody(sunSphere.get(), earthRotationSpeed);
-		// The moon moves with the Earth. The Earth moves with the sun. By the transitive property, the moon moves with the sun.
-		moonSphere->rotateAroundBody(sunSphere.get(), earthRotationSpeed);
-		moonSphere->rotateAroundBody(earthSphere.get(), earthRotationSpeed / 2);
-		*/
-		// Rotation around self
-		//earthSphere->rotate(earthSphere.get(), Y_ROTATION_VECTOR, -earthRotationSpeed / 2);
-		//moonSphere->rotate(moonSphere.get(), earthRotationSpeed / 2);
-
-		// Less function calls but less understandable
 		earthSphere->rotate(sunSphere.get(), Y_ROTATION_VECTOR, earthRotationSpeed);
 		earthSphere->rotate(earthSphere.get(), glm::vec3(10.0,23.5,0.0), earthRotationSpeed);
 		// The moon moves with the Earth. The Earth moves with the sun. By the transitive property, the moon moves with the sun.

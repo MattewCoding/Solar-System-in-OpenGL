@@ -148,10 +148,9 @@ void Mesh::defineRenderMethod()
 
 	sendVertexShader(m_vertexPositions, &m_posVbo, 0);
 	sendVertexShader(m_vertexNormals, &m_normVbo, 1);
-
-	sendVertexShader(m_vertexLight, &m_lightVbo, 3);
-	sendVertexShader(m_vertexAmbience, &m_ambiVbo, 4);
-	sendVertexShader(m_vertexTexCoords, &m_texVbo, 5);
+	sendVertexShader(m_vertexLight, &m_lightVbo, 2);
+	sendVertexShader(m_vertexAmbience, &m_ambiVbo, 3);
+	sendVertexShader(m_vertexTexCoords, &m_texVbo, 4);
 
 	size_t indexBufferSize = sizeof(unsigned int) * m_triangleIndices.size();
 
@@ -178,7 +177,6 @@ void Mesh::init(const size_t resolution)
 	definePositionsAndColor();
 	defineTextureCoords();
 	defineIndices();
-	defineRenderMethod();
 }
 
 void Mesh::renderMesh()
@@ -197,55 +195,38 @@ void Mesh::updateRendering(std::vector<glm::vec3> m_vextexInfo, GLuint *vbo)
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 }
 
-void Mesh::rotateAroundBody(Mesh* orbitingBody, float rotationSpeed)
-{
-	transform(glm::mat4(1.), this, Y_ROTATION_VECTOR, -rotationSpeed, false);
-	transform(glm::mat4(1.), orbitingBody, Y_ROTATION_VECTOR, rotationSpeed, true);
-}
-
 void Mesh::rotate(Mesh* orbitingBody, glm::vec3 axisVector, float rotationSpeed)
 {
-	transform(glm::mat4(1.), orbitingBody, axisVector, rotationSpeed, true);
+	glm::vec3 obCenter = orbitingBody->getSelfCenter();
+	glm::mat4 matxTrans = MeshUtility::translate(obCenter) *
+		MeshUtility::rotateAroundAxis(axisVector, M_PI / rotationSpeed) *
+		MeshUtility::translate(-obCenter);
+
+	transform(matxTrans);
 }
 
-void Mesh::move(glm::mat4 matxMove, bool update)
+void Mesh::move(glm::mat4 matxMove)
 {
-	transform(matxMove, NULL, ZERO_VECTOR, 0, update);
+	transform(matxMove);
 }
 
-void Mesh::transform(glm::mat4 matxTrans, Mesh* orbitingBody, glm::vec3 axisVector, float rotationSpeed, bool update)
+void Mesh::transform(glm::mat4 matxTrans)
 {
-	if (orbitingBody != NULL)
-	{
-		glm::vec3 obCenter = orbitingBody->getSelfCenter();
-		matxTrans = MeshUtility::translate(obCenter) *
-			MeshUtility::rotateAroundAxis(axisVector, M_PI / rotationSpeed) *
-			MeshUtility::translate(-obCenter);
-	}
-
 	self_center = glm::vec3(matxTrans * glm::vec4{ self_center, 1 });
 
 	for (int i = 0; i < nbPoints; i++) {
-		glm::vec4 pointCoord{ m_vertexPositions[i], 1 };
-		pointCoord = matxTrans * pointCoord;
-		m_vertexPositions[i] = glm::vec3(pointCoord);
-		m_vertexNormals[i] = glm::normalize(glm::vec3(pointCoord) - self_center);
+		glm::vec3 pointCoord = glm::vec3(matxTrans * glm::vec4{ m_vertexPositions[i], 1 });
+		m_vertexPositions[i] = pointCoord;
+		m_vertexNormals[i] = glm::normalize(pointCoord - self_center);
 
-		m_vertexLight[i] = glm::vec3(
-			sun_center.x - pointCoord.x,
-			sun_center.y - pointCoord.y,
-			sun_center.z - pointCoord.z
-		);
+		m_vertexLight[i] = glm::vec3(sun_center - pointCoord);
 	}
 
-	if (update)
-	{
-		glBindVertexArray(m_vao);
-		updateRendering(m_vertexPositions, &m_posVbo);
-		updateRendering(m_vertexNormals, &m_normVbo);
-		updateRendering(m_vertexLight, &m_lightVbo);
-		glBindVertexArray(0); // Unbinding
-	}
+	glBindVertexArray(m_vao);
+	updateRendering(m_vertexPositions, &m_posVbo);
+	updateRendering(m_vertexNormals, &m_normVbo);
+	updateRendering(m_vertexLight, &m_lightVbo);
+	glBindVertexArray(0); // Unbinding
 }
 
 void Mesh::setupSun()
@@ -259,7 +240,7 @@ void Mesh::setupSun()
 	glBindVertexArray(0); // Unbinding
 }
 
-glm::vec3 Mesh::getSelfCenter()
+glm::vec3 Mesh::getSelfCenter() const
 {
 	return self_center;
 }
