@@ -1,7 +1,6 @@
 #version 330 core	     // Minimal GL version support expected from the GPU
 
 struct Material {
-	// ...
 	sampler2D albedoTex; // texture unit, relate to glActivateTexture(GL_TEXTURE0 + i)
 };
 
@@ -25,7 +24,7 @@ void main() {
 
 	// ref: left-right, bottom-top, back-front
 	// right hand
-	vec3 l = normalize(vec3(0.0, 0.0, 1.0));
+	vec3 l = normalize(fLight);
 
 	vec3 v = normalize(camPos - fPosition);
 

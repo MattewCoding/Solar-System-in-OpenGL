@@ -40,17 +40,20 @@
 #include <cmath>
 #include <memory>
 
+void mouseButtonCallback(GLFWwindow* window, int button, int action, int mods);
+void mouseMotionCallback(GLFWwindow* window, double xpos, double ypos);
 
 // constants
-const static float kSizeSun = 3;
+const static float kSizeSun = 1;
 const static float kSizeEarth = kSizeSun * 0.5;
 const static float kSizeMoon = kSizeEarth * 0.5;
 const static float kRadOrbitEarth = 10;
-const static float kRadOrbitMoon = 2;
+const static float kRadOrbitVenus= 5;
+const static float kRadOrbitMoon = 4;
 const static float earthRotationSpeed = 60.*50.;
 
 const static float x_sun = 0, y_sun = 0, z_sun = 0;
-const static float x_earth = x_sun + kRadOrbitEarth, x_moon = x_earth + kRadOrbitMoon;
+const static float x_venus = x_sun + kRadOrbitVenus, x_earth = x_sun + kRadOrbitEarth, x_moon = x_earth + kRadOrbitMoon;
 
 const std::string backoutPath = "../../../";
 
@@ -65,17 +68,17 @@ Camera g_camera;
 
 // Toy mesh for a sphere
 std::shared_ptr<Mesh> sphereMesh;
-std::shared_ptr<Mesh> sunSphere, earthSphere, moonSphere;
+std::shared_ptr<Mesh> sunSphere, venusSphere, earthSphere, moonSphere;
 
 // Translation matrixes
 // For some reason mat4's are transposed, but I guess that's how glm decided to implement this
-glm::mat4 g_sun{ glm::mat4(kSizeSun) }, g_earth{ glm::mat4(kSizeEarth) }, g_moon{ glm::mat4(kSizeMoon) };
+glm::mat4 g_sun{ glm::mat4(kSizeSun) }, g_venus{ glm::mat4(kSizeEarth) }, g_earth{ glm::mat4(kSizeEarth) }, g_moon{ glm::mat4(kSizeMoon) };
 
 // Rotation matrixes
 //glm::mat4 earth_rot{ glm::mat4(1.) }, moon_rot{ glm::mat4(1.) };
 
 // Texture vars
-GLuint g_earthTexID, g_moonTexID;
+GLuint g_venusTexID, g_earthTexID, g_moonTexID;
 
 // Updating vars
 float fps = 60, lastUpdateTime = 0;
@@ -220,6 +223,7 @@ void initGPUprogram() {
 	loadShader(g_program, GL_FRAGMENT_SHADER, backoutPath + "fragmentShader.glsl");
 	glLinkProgram(g_program); // The main GPU program is ready to be handle streams of polygons
 
+	g_venusTexID = loadTextureFromFileToGPU("media/venus.jpg");
 	g_earthTexID = loadTextureFromFileToGPU("media/earth.jpg");
 	g_moonTexID = loadTextureFromFileToGPU("media/moon.jpg");
 
@@ -232,6 +236,7 @@ void initGPUprogram() {
 // Define your mesh(es) in the CPU memory
 void initCPUgeometry() {
 	g_sun[3] = glm::vec4(x_sun, y_sun, z_sun, 1.);
+	g_venus[3] = glm::vec4(x_venus, y_sun, z_sun, 1.);
 	g_earth[3] = glm::vec4(x_earth, y_sun, z_sun, 1.);
 	g_moon[3] = glm::vec4(x_moon, y_sun, z_sun, 1.);
 
@@ -239,23 +244,30 @@ void initCPUgeometry() {
 	sphereMesh = Mesh::genSphere(x_sun, y_sun, z_sun);
 
 	sunSphere = std::make_shared<Mesh>(*sphereMesh);
+	venusSphere = std::make_shared<Mesh>(*sphereMesh);
 	earthSphere = std::make_shared<Mesh>(*sphereMesh);
 	moonSphere = std::make_shared<Mesh>(*sphereMesh);
 
 	// Workaround because appearently calling this method in genSphere()'s init()
 	// Doesn't actually work	
 	sunSphere->defineRenderMethod();
+	venusSphere->defineRenderMethod();
 	earthSphere->defineRenderMethod();
 	moonSphere->defineRenderMethod();
 
 	sunSphere->move(g_sun);
+	venusSphere->move(g_venus);
 	earthSphere->move(g_earth);
 	moonSphere->move(g_moon);
+
+	venusSphere->rotate(venusSphere.get(), X_ROTATION_VECTOR, -2);
+	venusSphere->rotate(venusSphere.get(), Y_ROTATION_VECTOR, -2.5);
 
 	earthSphere->rotate(earthSphere.get(), X_ROTATION_VECTOR, -2);
 	earthSphere->rotate(earthSphere.get(), Y_ROTATION_VECTOR, -2.5);
 	moonSphere->rotate(moonSphere.get(), X_ROTATION_VECTOR, -2);
 
+	venusSphere->rotate(venusSphere.get(), Z_ROTATION_VECTOR, 1.01695);
 	earthSphere->rotate(earthSphere.get(), Z_ROTATION_VECTOR, -7.65957);
 
 	sunSphere->setupSun();
@@ -266,7 +278,8 @@ void initCamera() {
 	glfwGetWindowSize(g_window, &width, &height);
 	g_camera.setAspectRatio(static_cast<float>(width) / static_cast<float>(height));
 
-	g_camera.setPosition(glm::vec3(0.0, 0.0, 30.0));
+	// A little bit up high and far away
+	g_camera.setPosition(glm::vec3(0.0, 10.0, 30.0));
 	g_camera.setNear((const float)0.1);
 	g_camera.setFar((const float)80.1);
 }
@@ -286,6 +299,46 @@ void clear() {
 	glfwTerminate();
 }
 
+bool rightMousePressed = false;
+double lastX, lastY;
+
+glm::vec3 computeCameraMovement(glm::vec3 camPos, double xRot, double yRot) {
+	double xRotRad = -xRot / 100.0;
+	double yRotRad = yRot / 100.0;
+
+	glm::vec4 newCamPos = MeshUtility::rotateAroundAxis(Y_ROTATION_VECTOR, xRotRad) * glm::vec4{ camPos, 1.0 };
+	return glm::vec3(newCamPos);
+}
+
+void mouseButtonCallback(GLFWwindow* window, int button, int action, int mods) {
+	if (button == GLFW_MOUSE_BUTTON_RIGHT) {
+		if (action == GLFW_PRESS) {
+			rightMousePressed = true;
+			// Store initial mouse position
+			glfwGetCursorPos(window, &lastX, &lastY);
+		}
+		else if (action == GLFW_RELEASE) {
+			rightMousePressed = false;
+		}
+	}
+}
+
+void mouseMotionCallback(GLFWwindow* window, double xpos, double ypos) {
+	if (rightMousePressed) {
+		// Calculate mouse movement
+		double deltaX = xpos - lastX;
+		double deltaY = ypos - lastY;
+
+		// Update last positions
+		lastX = xpos;
+		lastY = ypos;
+
+		// Move camera based on mouse movement
+		g_camera.setPosition(computeCameraMovement(g_camera.getPosition(), deltaX, deltaY));
+	}
+}
+
+
 // The main rendering call
 void render() {
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); // Erase the color and z buffers.
@@ -300,16 +353,14 @@ void render() {
 	glUniform3f(glGetUniformLocation(g_program, "camPos"), camPosition[0], camPosition[1], camPosition[2]);
 
 	glActiveTexture(GL_TEXTURE0);
-	glBindTexture(GL_TEXTURE_2D, 0/*g_moonTexID*/); // Moon texture "good enough" to approximate sunspots and intense brightness
-	sunSphere->renderMesh();
+	glBindTexture(GL_TEXTURE_2D, g_venusTexID);
+	venusSphere->renderMesh();
 
-	glActiveTexture(GL_TEXTURE0);
 	glBindTexture(GL_TEXTURE_2D, g_earthTexID);
 	earthSphere->renderMesh();
 
-	glActiveTexture(GL_TEXTURE0);
 	glBindTexture(GL_TEXTURE_2D, g_moonTexID);
-
+	sunSphere->renderMesh(); // Moon texture "good enough" to approximate sunspots and intense brightness
 	moonSphere->renderMesh();
 }
 
@@ -317,6 +368,9 @@ void render() {
 void update(const float currentTimeInSec) {
 	if ((currentTimeInSec - lastUpdateTime) * fps > 1)
 	{
+		venusSphere->rotate(sunSphere.get(), Y_ROTATION_VECTOR, earthRotationSpeed/1.6);
+		venusSphere->rotate(venusSphere.get(), glm::vec3(10.0, 177.0, 0.0), 2*earthRotationSpeed/3);
+
 		earthSphere->rotate(sunSphere.get(), Y_ROTATION_VECTOR, earthRotationSpeed);
 		earthSphere->rotate(earthSphere.get(), glm::vec3(10.0,23.5,0.0), earthRotationSpeed);
 		// The moon moves with the Earth. The Earth moves with the sun. By the transitive property, the moon moves with the sun.
@@ -327,8 +381,13 @@ void update(const float currentTimeInSec) {
 
 int main(int argc, char** argv) {
 	init(); // Your initialization code (user interface, OpenGL states, scene with geometry, material, lights, etc)
+
+	glfwSetMouseButtonCallback(g_window, mouseButtonCallback);
+	glfwSetCursorPosCallback(g_window, mouseMotionCallback);
+
 	while (!glfwWindowShouldClose(g_window)) {
 		update(static_cast<float>(glfwGetTime()));
+		glfwPollEvents();
 		render();
 		glfwSwapBuffers(g_window);
 		glfwPollEvents();
