@@ -14,11 +14,14 @@ public:
 	inline void setNear(const float n) { m_near = n; }
 	inline float getFar() const { return m_far; }
 	inline void setFar(const float n) { m_far = n; }
-	inline void setPosition(const glm::vec3& p) { m_pos = p; }
 	inline glm::vec3 getPosition() { return m_pos; }
+	inline void setPosition(const glm::vec3& p) { m_pos = p; }
+	inline glm::vec3 getCenter() const { return m_center; }
+	inline void setCenter(const glm::vec3 c) { m_center = c; }
+	inline void flipUp() { m_up *= -1; }
 
 	inline glm::mat4 computeViewMatrix() const {
-		return glm::lookAt(m_pos, glm::vec3(0, 0, 0), glm::vec3(0, 1, 0));
+		return glm::lookAt(m_pos, m_center, m_up);
 	}
 
 	// Returns the projection matrix stemming from the camera intrinsic parameter.
@@ -28,10 +31,12 @@ public:
 
 private:
 	glm::vec3 m_pos = glm::vec3(0, 0, 0);
+	glm::vec3 m_center = glm::vec3(0, 0, 0);
+	glm::vec3 m_up = glm::vec3(0, 1, 0);
 	float m_fov = 45.f;        // Field of view, in degrees
 	float m_aspectRatio = 1.f; // Ratio between the width and the height of the image
 	float m_near = 0.1f; // Distance before which geometry is excluded from the rasterization process
-	float m_far = 10.f; // Distance after which the geometry is excluded from the rasterization process
+	float m_far = 400.0f; // Distance after which the geometry is excluded from the rasterization process
 };
 
 #endif

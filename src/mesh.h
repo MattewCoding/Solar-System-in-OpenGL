@@ -25,6 +25,18 @@ public:
 	void init(const size_t resolution);
 
 	/*
+	* @brief Sets up the sun-specific parameters.
+	*/
+	void setupSun();
+
+	/*
+	* @brief Sets up the planet-specific parameters
+	* 
+	* @param angleOfRotationAxis The angle at which the planet rotates around.
+	*/
+	void setupPlanet(double angleOfRotationAxis, double orbitProgress);
+
+	/*
 	* @brief Function called during the main rendering loop
 	*/
 	void renderMesh();
@@ -38,7 +50,18 @@ public:
 	* @param axisVector The axis to spin around
 	* @param rotationSpeed The speed of rotation around the body
 	*/
-	void rotate(Mesh* orbitingBody, glm::vec3 axisVector, float rotationSpeed);
+	void rotateAround(Mesh* orbitingBody, glm::vec3 axisVector, float rotationSpeed);
+
+	/*
+	* @brief Rotate around a body.
+	*
+	* Note that this rotation is both around the orbitingBody and the body itself.
+	*
+	* @param obCenter The coordinates of the center of the body the current body is orbiting around.
+	* @param axisVector The axis to spin around
+	* @param rotationSpeed The speed of rotation around the body
+	*/
+	void rotateAround(glm::vec3 obCenter, glm::vec3 axisVector, float rotationSpeed);
 
 	/*
 	* @brief Move a body linearly. rotate() also 
@@ -48,19 +71,17 @@ public:
 	void move(glm::mat4 matxMove);
 
 	/*
-	* @brief Function that sets up the sun-specific parameters.
-	*/
-	void setupSun();
-
-	/*
 	* @brief Defines how the mesh will be displayed on screen.
 	*/
 	void defineRenderMethod();
 
 	/**
-	* @brief Generates a sphere centered at (0,0,0) with sphereRadius 1.
+	* @brief Generates a sphere centered at (0,0,0) with sphereRadius 1 and sets the position of the sun.
 	*
-	* @param resolution The amount of points used to approximate a disk, and also amount of disks.
+	* @param x The x-coordinate of the sun.
+	* @param y The y-coordinate of the sun.
+	* @param z The z-coordinate of the sun.
+	* @param resolution The amount of points used to approximate a disk, and also amount of disks. Defaults to 16.
 	*
 	* @return The initialized Mesh
 	*/
@@ -110,6 +131,8 @@ private:
 	// Amount of points used to approximate a disk, and also amount of disks.
 	int size = 16;
 	int nbPoints=0;
+
+	float rotationalAxis = 0.0f;
 
 	/**
 	* @brief Defines a point's position given its x,y,z coordinates.

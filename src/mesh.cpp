@@ -179,6 +179,26 @@ void Mesh::init(const size_t resolution)
 	defineIndices();
 }
 
+void Mesh::setupSun()
+{
+	for (int i = 0; i < nbPoints; i++) {
+		m_vertexAmbience[i] = glm::vec3(1., 1., 0.);
+	}
+
+	glBindVertexArray(m_vao);
+	updateRendering(m_vertexAmbience, &m_ambiVbo);
+	glBindVertexArray(0); // Unbinding
+}
+
+void Mesh::setupPlanet(double angleOfRotationAxis, double orbitProgress)
+{
+	rotationalAxis = angleOfRotationAxis;
+
+	rotateAround(this, X_ROTATION_VECTOR, -M_PI/2);
+	rotateAround(this, Z_ROTATION_VECTOR, rotationalAxis);
+	rotateAround(sun_center, Y_ROTATION_VECTOR, orbitProgress);
+}
+
 void Mesh::renderMesh()
 {
 	glBindVertexArray(m_vao);     // activate the VAO storing geometry data
@@ -195,14 +215,45 @@ void Mesh::updateRendering(std::vector<glm::vec3> m_vextexInfo, GLuint *vbo)
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 }
 
-void Mesh::rotate(Mesh* orbitingBody, glm::vec3 axisVector, float rotationSpeed)
+void Mesh::rotateAround(glm::vec3 obCenter, glm::vec3 axisVector, float rotationSpeed)
 {
-	glm::vec3 obCenter = orbitingBody->getSelfCenter();
-	glm::mat4 matxTrans = MeshUtility::translate(obCenter) *
-		MeshUtility::rotateAroundAxis(axisVector, M_PI / rotationSpeed) *
-		MeshUtility::translate(-obCenter);
+	glm::mat4 matxTrans{ glm::mat4(1.0) };
+	const glm::vec3 selfCenter = getSelfCenter();
+
+	if (obCenter != getSelfCenter() && rotationalAxis != 0.0f) // only if need to unrotate axis
+	{
+		glm::mat4 unrotateMatx =
+			// Then moving into orbiting space and doing the orbital rotation
+			MeshUtility::translate(obCenter) *
+			MeshUtility::rotateAroundAxis(axisVector, rotationSpeed) *
+			MeshUtility::translate(-obCenter) *
+
+			// First, removing axial tilt by centering at world space
+			MeshUtility::translate(selfCenter - obCenter) *
+			MeshUtility::rotateAroundAxis(Z_ROTATION_VECTOR, -rotationalAxis) *
+			MeshUtility::translate(obCenter - selfCenter);
+
+		glm::vec3 newSelfCenter = glm::vec3{ unrotateMatx * glm::vec4{selfCenter, 1.0f} };
+
+		matxTrans =
+			MeshUtility::translate(newSelfCenter - obCenter) *
+			MeshUtility::rotateAroundAxis(Z_ROTATION_VECTOR, rotationalAxis) *
+			MeshUtility::translate(obCenter - newSelfCenter) *
+			unrotateMatx;
+	}
+	else
+	{
+		matxTrans = MeshUtility::translate(obCenter) *
+			MeshUtility::rotateAroundAxis(axisVector, rotationSpeed) *
+			MeshUtility::translate(-obCenter);
+	}
 
 	transform(matxTrans);
+}
+
+void Mesh::rotateAround(Mesh * orbitingBody, glm::vec3 axisVector, float rotationSpeed)
+{
+	rotateAround(orbitingBody->getSelfCenter(), axisVector, rotationSpeed);
 }
 
 void Mesh::move(glm::mat4 matxMove)
@@ -219,24 +270,21 @@ void Mesh::transform(glm::mat4 matxTrans)
 		m_vertexPositions[i] = pointCoord;
 		m_vertexNormals[i] = glm::normalize(pointCoord - self_center);
 
-		m_vertexLight[i] = glm::vec3(sun_center - pointCoord);
+		// Have a very, very slight luminous intensity drop off the further out we go
+		// Real-life has this set not at 0.375, but 2
+		// However setting that value to 2 for our model makes things look way too dark
+		// Also reminder: 1.33203125 = 10^0.125; theoretically we could do smth like pow(10/glm::length(lightVector), 0.125)
+		// But that feels like overkill for something I can manually change if needed
+		glm::vec3 lightVector = sun_center - pointCoord;
+		lightVector = 1.33203125f * glm::normalize(lightVector) / (float)pow(glm::length(lightVector), 0.125);
+
+		m_vertexLight[i] = lightVector;
 	}
 
 	glBindVertexArray(m_vao);
 	updateRendering(m_vertexPositions, &m_posVbo);
 	updateRendering(m_vertexNormals, &m_normVbo);
 	updateRendering(m_vertexLight, &m_lightVbo);
-	glBindVertexArray(0); // Unbinding
-}
-
-void Mesh::setupSun()
-{
-	for (int i = 0; i < nbPoints; i++) {
-		m_vertexAmbience[i] = glm::vec3(1., 1., 0.);
-	}
-
-	glBindVertexArray(m_vao);
-	updateRendering(m_vertexAmbience, &m_ambiVbo);
 	glBindVertexArray(0); // Unbinding
 }
 

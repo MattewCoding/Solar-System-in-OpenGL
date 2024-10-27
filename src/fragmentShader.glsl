@@ -24,7 +24,8 @@ void main() {
 
 	// ref: left-right, bottom-top, back-front
 	// right hand
-	vec3 l = normalize(fLight);
+	vec3 l = fLight;
+	//vec3 l = normalize(vec3(0.,0.,1.));
 
 	vec3 v = normalize(camPos - fPosition);
 
@@ -33,7 +34,7 @@ void main() {
 
 	vec3 ambient = fAmbient;
 	vec3 diffuse = max(dot(n, l), 0.0) * vec3(1.0, 1.0, 1.0) * texColor;
-	vec3 specular = pow(max(dot(v, r), 0.0), 1) * vec3(1.0, 1.0, 1.0) * texColor;
+	vec3 specular = pow(max(dot(v, r), 0.0), 8) * vec3(1.0, 1.0, 1.0) * texColor;
 
 	color = vec4(ambient + diffuse + specular, 1.0); // Building RGBA from RGB
 
