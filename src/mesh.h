@@ -34,7 +34,7 @@ public:
 	* 
 	* @param angleOfRotationAxis The angle at which the planet rotates around.
 	*/
-	void setupPlanet(double angleOfRotationAxis, double orbitProgress);
+	void setupPlanet(double angleOfRotationAxis, double orbitProgress, double orbitInclination);
 
 	/*
 	* @brief Function called during the main rendering loop

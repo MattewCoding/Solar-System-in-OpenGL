@@ -66,6 +66,10 @@ const static std::vector<float> planetRotSun = { 0.24, 0.62, 1.0, 1.88, 11.86, 2
 const static std::vector<float> axialTilt = { 0.0, 3.1, 0.41, 0.44, 0.05, 0.47, 1.71, 0.49, 2.09 };
 static std::vector<float> axialTiltCos = {};
 static std::vector<float> axialTiltSin = {};
+static std::vector<float> orbitInclCos = {};
+static std::vector<float> orbitInclSin = {};
+
+const static std::vector<float> orbitIncl = { 0.12, 0.06, 0.0, 0.03, 0.02, 0.04, 0.01, 0.03, 0.3 };
 
 const static float x_sun = 0, y_sun = 0, z_sun = 0;
 const static float x_venus = x_sun + kRadOrbitVenus, x_earth = x_sun + kRadOrbitEarth, x_moon = x_earth + kRadOrbitMoon;
@@ -100,7 +104,7 @@ std::vector <GLuint> texIDs;
 float fps = 60, lastUpdateTime = 0;
 
 // Mouse vars
-bool rightMousePressed = false, leftMousePressed = false;
+bool rightMousePressed = false, leftMousePressed = false, invertedMouseControls = false;
 double lastX, lastY;
 
 void printMat4(glm::mat4 a)
@@ -157,14 +161,20 @@ void windowSizeCallback(GLFWwindow* window, int width, int height) {
 
 // Executed each time a key is entered.
 void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods) {
-	if (action == GLFW_PRESS && key == GLFW_KEY_W) {
-		glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-	}
-	else if (action == GLFW_PRESS && key == GLFW_KEY_F) {
-		glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-	}
-	else if (action == GLFW_PRESS && (key == GLFW_KEY_ESCAPE || key == GLFW_KEY_Q)) {
-		glfwSetWindowShouldClose(window, true); // Closes the application if the escape key is pressed
+	if (action == GLFW_PRESS)
+	{
+		if (key == GLFW_KEY_W) {
+			glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+		}
+		else if (key == GLFW_KEY_F) {
+			glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+		}
+		else if (key == GLFW_KEY_ESCAPE || key == GLFW_KEY_Q) {
+			glfwSetWindowShouldClose(window, true); // Closes the application if the escape key is pressed
+		}
+		else if (key == GLFW_KEY_Y) {
+			invertedMouseControls = !invertedMouseControls;
+		}
 	}
 }
 
@@ -222,7 +232,12 @@ void mouseMotionCallback(GLFWwindow* window, double xpos, double ypos) {
 		g_camera.setCenter(g_camera.getCenter() + glm::vec3(-deltaX / 30.0, 0.0f, 0.0f));
 	}
 	if (leftMousePressed) {
-		g_camera.setPosition(computeCameraMovement(g_camera, -deltaX / 200.0, -deltaY / 400.0));
+		if (invertedMouseControls)
+		{
+			deltaX *= -1;
+			deltaY *= -1;
+		}
+		g_camera.setPosition(computeCameraMovement(g_camera, deltaX / 200.0, deltaY / 400.0));
 	}
 }
 
@@ -407,12 +422,15 @@ void initCPUgeometry() {
 		std::shared_ptr<Mesh> planet = std::make_shared<Mesh>(*sphereMesh);
 		planet->defineRenderMethod();
 		planet->move(setUpMatrix(kSizeSun * planetSizes[i], x_sun + orbitRadii[i], y_sun, z_sun));
-		planet->setupPlanet(-axialTilt[i], orbitProgress);
-		if (i == 2) moonSphere->setupPlanet(0, orbitProgress); // moon needs to align with Earth
+		planet->setupPlanet(-axialTilt[i], orbitProgress, orbitIncl[i]);
+		if (i == 2) moonSphere->setupPlanet(0, orbitProgress, 0); // moon needs to align with Earth
 		planets.push_back(planet);
 
 		axialTiltCos.push_back(cos(axialTilt[i]));
 		axialTiltSin.push_back(sin(axialTilt[i]));
+
+		orbitInclCos.push_back(cos(orbitIncl[i]));
+		orbitInclSin.push_back(sin(orbitIncl[i]));
 	}
 }
 
@@ -454,8 +472,8 @@ void render() {
 
 	const glm::vec3 camPosition = g_camera.getPosition();
 	glUniform3f(glGetUniformLocation(g_program, "camPos"), camPosition[0], camPosition[1], camPosition[2]);
-	glActiveTexture(GL_TEXTURE0);
 
+	glActiveTexture(GL_TEXTURE0);
 	for (int i = 0; i < 9; i++)
 	{
 		glBindTexture(GL_TEXTURE_2D, texIDs[i]);
@@ -477,7 +495,7 @@ void update(const float currentTimeInSec) {
 		venusSphere->rotate(venusSphere.get(), glm::vec3(10.0, 177.0, 0.0), 2*earthRotationSpeed/3);*/
 		for (int i = 0; i < 9; i++)
 		{
-			planets[i]->rotateAround(sunSphere.get(), Y_ROTATION_VECTOR, 1 / (slowdownRatio * planetRotSun[i]));
+			planets[i]->rotateAround(sunSphere.get(), glm::vec3(orbitInclSin[i], orbitInclCos[i], 0.0), 1 / (slowdownRatio * planetRotSun[i]));
 			planets[i]->rotateAround(planets[i].get(), glm::vec3(axialTiltSin[i], axialTiltCos[i], 0.0), 1 / (slowdownRatio * planetRotSun[i]));
 		}
 		//earthSphere->rotateAround(sunSphere.get(), Y_ROTATION_VECTOR, planetRotSun[2] / 1000);

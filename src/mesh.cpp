@@ -190,13 +190,14 @@ void Mesh::setupSun()
 	glBindVertexArray(0); // Unbinding
 }
 
-void Mesh::setupPlanet(double angleOfRotationAxis, double orbitProgress)
+void Mesh::setupPlanet(double angleOfRotationAxis, double orbitProgress, double orbitInclination)
 {
 	rotationalAxis = angleOfRotationAxis;
 
 	rotateAround(this, X_ROTATION_VECTOR, -M_PI/2);
 	rotateAround(this, Z_ROTATION_VECTOR, rotationalAxis);
-	rotateAround(sun_center, Y_ROTATION_VECTOR, orbitProgress);
+	rotateAround(sun_center, Z_ROTATION_VECTOR, -orbitInclination);
+	rotateAround(sun_center, glm::vec3(sin(orbitInclination), cos(orbitInclination), 0.0), orbitProgress);
 }
 
 void Mesh::renderMesh()
