@@ -22,7 +22,7 @@ void Mesh::defineTextureCoord(int position, float x, float y)
 	m_vertexTexCoords.push_back(glm::vec2(x, y));
 }
 
-void Mesh::definePositionsAndColor()
+void Mesh::definePositions()
 {
 	self_center = glm::vec3(0., 0., 0.);
 
@@ -30,20 +30,16 @@ void Mesh::definePositionsAndColor()
 	int thetaIndex = 0;
 	int phiIndex = 0;
 
-	// North point
-	definePointPosition(i, 0, 0, 1);
-	i++;
-
-	const int sizePlusOne = size + 1;
+	const size_t sizePlusOne = size + (size_t)1;
 	std::vector<float> sinTheta(sizePlusOne), cosTheta(sizePlusOne);
 	std::vector<float> sinPhi(sizePlusOne), cosPhi(sizePlusOne);
 
 	for (int index = 0; index < size; ++index) {
-		float theta = M_PI * index / (size - 1); // 0-indexing => size differs
+		float theta = (float)M_PI * index / (size - 1); // 0-indexing => size differs
 		sinTheta[index] = sin(theta);
 		cosTheta[index] = cos(theta);
 
-		float phi = 2. * M_PI * index / size;
+		float phi = 2.0f * (float)M_PI * index / size;
 		sinPhi[index] = sin(phi);
 		cosPhi[index] = cos(phi);
 	}
@@ -52,6 +48,10 @@ void Mesh::definePositionsAndColor()
 	cosTheta[size] = cosTheta[0];
 	sinPhi[size] = sinPhi[0];
 	cosPhi[size] = cosPhi[0];
+
+	// North point
+	definePointPosition(i, 0, 0, 1);
+	i++;
 
 	for (thetaIndex = 1; thetaIndex < size - 1; thetaIndex++)
 	{
@@ -76,7 +76,7 @@ void Mesh::defineTextureCoords()
 	index++;
 	for (int x = 1; x < size - 1; x++)
 	{
-		for (int y = 0; y < size+1; y++)
+		for (int y = 0; y < size + 1; y++)
 		{
 			float u = static_cast<float>(y) / (size);
 			float v = static_cast<float>(x) / (size - 1);
@@ -91,14 +91,14 @@ void Mesh::defineIndices()
 {
 	// Top part
 	int currFaceVertex = 0;
-	int lastTopFV = size * 3;
+	int lastTopFV = (int)size * 3;
 	while (currFaceVertex < lastTopFV)
 	{
 		defineTrianglePoints(currFaceVertex, 0, currFaceVertex / 3 + 1, currFaceVertex / 3 + 2);
 		currFaceVertex += 3;
 	}
 
-	const int sizePlusOne = size + 1;
+	const int sizePlusOne = (int)(size + 1);
 	for (int currRow = 0; currRow < size - 3; currRow++)
 	{
 		for (int currCol = 1; currCol < size + 1; currCol++)
@@ -116,7 +116,7 @@ void Mesh::defineIndices()
 	// lastTopFV is not correct
 
 	// Bottom part
-	lastTopFV = (3 * 2 * size * (size - 2) - currFaceVertex) / 3;
+	lastTopFV = (3 * 2 * (int)size * ((int)size - 2) - currFaceVertex) / 3;
 
 	// Note: This is DELIBERATELY backwards 'cause it's facing AWAY from the screen
 	for (int i = 0; i < lastTopFV - 1; i++)
@@ -165,7 +165,7 @@ void Mesh::init(const size_t resolution)
 {
 	size = resolution;
 
-	nbPoints = (size + 1) * (size - 2) + 2;
+	nbPoints = (int)(size + 1) * (int)(size - 2) + 2;
 	m_vertexPositions = std::vector<glm::vec3>(nbPoints);
 	m_vertexNormals = std::vector<glm::vec3>(nbPoints);
 	m_vertexLight = std::vector<glm::vec3>(nbPoints);
@@ -174,7 +174,7 @@ void Mesh::init(const size_t resolution)
 	// size = 3 * 2 * ( nbPoints - n-2 overlapping points - 2 pole points )
 	m_triangleIndices = std::vector<unsigned int>(3 * 2 * size * (size - 2));
 
-	definePositionsAndColor();
+	definePositions();
 	defineTextureCoords();
 	defineIndices();
 }
@@ -203,7 +203,7 @@ void Mesh::setupPlanet(double angleOfRotationAxis, double orbitProgress, double 
 void Mesh::renderMesh()
 {
 	glBindVertexArray(m_vao);     // activate the VAO storing geometry data
-	glDrawElements(GL_TRIANGLES, m_triangleIndices.size(), GL_UNSIGNED_INT, 0);
+	glDrawElements(GL_TRIANGLES, (GLsizei)m_triangleIndices.size(), GL_UNSIGNED_INT, 0);
 	glBindVertexArray(0); // Unbinding
 }
 
@@ -216,7 +216,7 @@ void Mesh::updateRendering(std::vector<glm::vec3> m_vextexInfo, GLuint *vbo)
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 }
 
-void Mesh::rotateAround(glm::vec3 obCenter, glm::vec3 axisVector, float rotationSpeed)
+void Mesh::rotateAround(glm::vec3 obCenter, glm::vec3 axisVector, double rotationSpeed)
 {
 	glm::mat4 matxTrans{ glm::mat4(1.0) };
 	const glm::vec3 selfCenter = getSelfCenter();
@@ -226,33 +226,33 @@ void Mesh::rotateAround(glm::vec3 obCenter, glm::vec3 axisVector, float rotation
 		glm::mat4 unrotateMatx =
 			// Then moving into orbiting space and doing the orbital rotation
 			MeshUtility::translate(obCenter) *
-			MeshUtility::rotateAroundAxis(axisVector, rotationSpeed) *
+			MeshUtility::rotateAroundAxis(axisVector, (float)rotationSpeed) *
 			MeshUtility::translate(-obCenter) *
 
 			// First, removing axial tilt by centering at world space
 			MeshUtility::translate(selfCenter - obCenter) *
-			MeshUtility::rotateAroundAxis(Z_ROTATION_VECTOR, -rotationalAxis) *
+			MeshUtility::rotateAroundAxis(Z_ROTATION_VECTOR, (float)-rotationalAxis) *
 			MeshUtility::translate(obCenter - selfCenter);
 
 		glm::vec3 newSelfCenter = glm::vec3{ unrotateMatx * glm::vec4{selfCenter, 1.0f} };
 
 		matxTrans =
 			MeshUtility::translate(newSelfCenter - obCenter) *
-			MeshUtility::rotateAroundAxis(Z_ROTATION_VECTOR, rotationalAxis) *
+			MeshUtility::rotateAroundAxis(Z_ROTATION_VECTOR, (float)rotationalAxis) *
 			MeshUtility::translate(obCenter - newSelfCenter) *
 			unrotateMatx;
 	}
 	else
 	{
 		matxTrans = MeshUtility::translate(obCenter) *
-			MeshUtility::rotateAroundAxis(axisVector, rotationSpeed) *
+			MeshUtility::rotateAroundAxis(axisVector, (float)rotationSpeed) *
 			MeshUtility::translate(-obCenter);
 	}
 
 	transform(matxTrans);
 }
 
-void Mesh::rotateAround(Mesh * orbitingBody, glm::vec3 axisVector, float rotationSpeed)
+void Mesh::rotateAround(Mesh * orbitingBody, glm::vec3 axisVector, double rotationSpeed)
 {
 	rotateAround(orbitingBody->getSelfCenter(), axisVector, rotationSpeed);
 }

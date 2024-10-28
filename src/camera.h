@@ -18,7 +18,6 @@ public:
 	inline void setPosition(const glm::vec3& p) { m_pos = p; }
 	inline glm::vec3 getCenter() const { return m_center; }
 	inline void setCenter(const glm::vec3 c) { m_center = c; }
-	inline void flipUp() { m_up *= -1; }
 
 	inline glm::mat4 computeViewMatrix() const {
 		return glm::lookAt(m_pos, m_center, m_up);
@@ -36,7 +35,7 @@ private:
 	float m_fov = 45.f;        // Field of view, in degrees
 	float m_aspectRatio = 1.f; // Ratio between the width and the height of the image
 	float m_near = 0.1f; // Distance before which geometry is excluded from the rasterization process
-	float m_far = 400.0f; // Distance after which the geometry is excluded from the rasterization process
+	float m_far = 600.0f; // Distance after which the geometry is excluded from the rasterization process
 };
 
 #endif

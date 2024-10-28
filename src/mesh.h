@@ -33,6 +33,8 @@ public:
 	* @brief Sets up the planet-specific parameters
 	* 
 	* @param angleOfRotationAxis The angle at which the planet rotates around.
+	* @param orbitProgress The offset in radians of how far into its orbit the body is.
+	* @param orbitInclination The angle, relative to Earth's of its orbit around the sun.
 	*/
 	void setupPlanet(double angleOfRotationAxis, double orbitProgress, double orbitInclination);
 
@@ -46,11 +48,11 @@ public:
 	* 
 	* Note that this rotation is both around the orbitingBody and the body itself.
 	* 
-	* @param *orbitingBody The pointer to the body the current body is orbiting around
+	* @param orbitingBody The pointer to the body the current body is orbiting around
 	* @param axisVector The axis to spin around
 	* @param rotationSpeed The speed of rotation around the body
 	*/
-	void rotateAround(Mesh* orbitingBody, glm::vec3 axisVector, float rotationSpeed);
+	void rotateAround(Mesh* orbitingBody, glm::vec3 axisVector, double rotationSpeed);
 
 	/*
 	* @brief Rotate around a body.
@@ -61,10 +63,10 @@ public:
 	* @param axisVector The axis to spin around
 	* @param rotationSpeed The speed of rotation around the body
 	*/
-	void rotateAround(glm::vec3 obCenter, glm::vec3 axisVector, float rotationSpeed);
+	void rotateAround(glm::vec3 obCenter, glm::vec3 axisVector, double rotationSpeed);
 
 	/*
-	* @brief Move a body linearly. rotate() also 
+	* @brief Move a body linearly.
 	* 
 	* @param matxMove The transformation matrix describing how to move the body
 	*/
@@ -126,13 +128,13 @@ private:
 	GLuint m_ibo = 0;
 
 	// Coordinates of the sun
-	glm::vec3 sun_center, self_center;
+	glm::vec3 sun_center{ glm::vec3(0.0f) }, self_center{ glm::vec3(0.0f) };
 
 	// Amount of points used to approximate a disk, and also amount of disks.
-	int size = 16;
+	size_t size = 16;
 	int nbPoints=0;
 
-	float rotationalAxis = 0.0f;
+	double rotationalAxis = 0.0f;
 
 	/**
 	* @brief Defines a point's position given its x,y,z coordinates.
@@ -154,12 +156,19 @@ private:
 	*/
 	void defineTrianglePoints(int position, int pt1, int pt2, int pt3);
 
+	/**
+	* @brief Defines how to map the textures to the vertices.
+	*
+	* @param position The vertex to assign the texture to.
+	* @param x The texture's x-coordinate.
+	* @param y The texture's y-coordinate.
+	*/
 	void defineTextureCoord(int position, float x, float y);
 
 	/**
-	* @brief Sets up the position and the colors of the points in the mesh
+	* @brief Sets up the position of the points in the mesh
 	*/
-	void definePositionsAndColor();
+	void definePositions();
 
 	/**
 	* @brief Associates the texture to the vertex
@@ -173,12 +182,18 @@ private:
 
 	
 	/**
-	* @brief Send a vector list to the vertexShader.glsl for processing.
-	* 
-	* @param m_vertexInfo The vector list
-	* @param *vbo The pointer to the VBO value
-	* @param location The channel that vertexShader will recieve this information on.
-	*/
+	 * @brief Sends vertex data to the GPU for use in a vertex shader.
+	 *
+	 * This function generates a Vertex Buffer Object (VBO) and uploads vertex information
+	 * from a CPU-side vector to the GPU. It sets up the vertex attribute pointer to specify
+	 * how the vertex data should be interpreted by the vertex shader.
+	 *
+	 * @tparam T The type of the vertex data.
+	 * @param m_vertexInfo A vector containing the vertex information to be sent to the GPU.
+	 * @param vbo A pointer to an GLuint where the generated VBO ID will be stored.
+	 * @param location The index of the vertex attribute in the shader that will receive
+	 *                 this data.
+	 */
 	template <typename T>
 	void sendVertexShader(std::vector<T> m_vextexInfo, GLuint *vbo, int location);
 
@@ -186,7 +201,7 @@ private:
 	* @brief Update the data being sent to vertexShader.glsl
 	* 
 	* @param m_vertexInfo The data replacing the old data being sent to the vertex shader.
-	* @param *vbo The pointer associated with the location transmitting the old data.
+	* @param vbo The pointer associated with the location transmitting the old data.
 	*/
 	void updateRendering(std::vector<glm::vec3> m_vextexInfo, GLuint *vbo);
 
@@ -202,7 +217,7 @@ private:
 	/*
 	* @brief A general purpose function for applying (or creating) a transformation matrix.
 	* 
-	* This function serves to either apply a translation matrix, apply a rotation matrix around an axis.
+	* This function serves to either apply a translation matrix, or apply a rotation matrix around an axis.
 	* 
 	* @param matxTrans The transformation matrix describing how to move the body
 	*/

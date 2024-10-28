@@ -48,39 +48,42 @@ void mouseMotionCallback(GLFWwindow* window, double xpos, double ypos);
 const static float kSizeSun = 2;
 const static float kSizeEarth = kSizeSun * 0.5;
 const static float kSizeMoon = kSizeEarth * 0.5;
-const static std::vector<float> planetSizes = { 0.19, 0.47, 0.5, 0.27, 5.6, 4.72, 2, 1.94, 0.09};
+const static std::vector<float> planetSizes = { 0.5f, 0.19f, 0.47f, 0.27f, 5.6f, 4.72f, 2.0f, 1.94f, 0.09f};
 
 const static float kRadOrbitEarth = 10;
 const static float kRadOrbitVenus= 5;
 const static float kRadOrbitMoon = 4;
-const static std::vector<float> orbitRadii = { 3.87, 7.23, 10.0, 15.24, 52.03, 95.72, 191.64, 301.80, 394.81 };
+const static std::vector<float> orbitRadii = { 10.0, 3.87, 7.23, 15.24, 52.03, 95.72, 191.64, 301.80, 394.81 };
 
 //const static float earthRotationSpeed = 60.*500.;
 const static float slowdownRatio = 500;
 
 // planetRotItself scaled such that the planets rotate in a reasonable time.
 // Scaled such that rot_duration(venus) = -rot_duration(earth)
-const static std::vector<float> planetRotItself = { 1.47, -1.0, 1.0, 1.22, 1.0, 1.0, 1.0, 0.99, 1.0, 0.94, };
-const static std::vector<float> planetRotSun = { 0.24, 0.62, 1.0, 1.88, 11.86, 29.43, 83.76, 163.75, 247.97 };
+const static std::vector<float> planetRotItself = { 1.0, 1.47, -1.0, 1.22, 1.0, 1.0, 1.0, 0.99, 1.0, 0.94, };
+const static std::vector<float> planetRotSun = { 1.0, 0.24, 0.62, 1.88, 11.86, 29.43, 83.76, 163.75, 247.97 };
 
-const static std::vector<float> axialTilt = { 0.0, 3.1, 0.41, 0.44, 0.05, 0.47, 1.71, 0.49, 2.09 };
+const static std::vector<float> axialTilt = { 0.41, 0.0, 3.1, 0.44, 0.05, 0.47, 1.71, 0.49, 2.09 };
 static std::vector<float> axialTiltCos = {};
 static std::vector<float> axialTiltSin = {};
 static std::vector<float> orbitInclCos = {};
 static std::vector<float> orbitInclSin = {};
 
-const static std::vector<float> orbitIncl = { 0.12, 0.06, 0.0, 0.03, 0.02, 0.04, 0.01, 0.03, 0.3 };
+static std::vector<float> orbitIncl = { 0.0, 0.12, 0.06, 0.03, 0.02, 0.04, 0.01, 0.03, 0.3 };
 
 const static float x_sun = 0, y_sun = 0, z_sun = 0;
 const static float x_venus = x_sun + kRadOrbitVenus, x_earth = x_sun + kRadOrbitEarth, x_moon = x_earth + kRadOrbitMoon;
 
 const std::string backoutPath = "../../../";
 
+int nbPlanetsToRender = 9;
+
 // Window parameters
 GLFWwindow* g_window = nullptr;
 
 // GPU objects
-GLuint g_program = 0; // A GPU program contains at least a vertex shader and a fragment shader
+// A GPU program contains at least a vertex shader and a fragment shader
+GLuint g_program = 0;
 
 // Basic camera model
 Camera g_camera;
@@ -97,11 +100,11 @@ glm::mat4 g_sun, g_venus, g_earth, g_moon;
 //glm::mat4 earth_rot{ glm::mat4(1.) }, moon_rot{ glm::mat4(1.) };
 
 // Texture vars
-GLuint g_moonTexID;
+GLuint g_sunTexID, g_moonTexID;
 std::vector <GLuint> texIDs;
 
 // Updating vars
-float fps = 60, lastUpdateTime = 0;
+float fps = 60, lastUpdateTime = 0, fpsSkip = 120.0 / fps;
 
 // Mouse vars
 bool rightMousePressed = false, leftMousePressed = false, invertedMouseControls = false;
@@ -172,8 +175,26 @@ void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods
 		else if (key == GLFW_KEY_ESCAPE || key == GLFW_KEY_Q) {
 			glfwSetWindowShouldClose(window, true); // Closes the application if the escape key is pressed
 		}
+
 		else if (key == GLFW_KEY_Y) {
 			invertedMouseControls = !invertedMouseControls;
+		}
+
+		else if (key == GLFW_KEY_Z) {
+			g_camera.setFar(g_camera.getFar() * 9.0f / 10.0f);
+		}
+		else if (key == GLFW_KEY_X) {
+			g_camera.setFar(g_camera.getFar() * 10.0f / 9.0f);
+		}
+		else if (key == GLFW_KEY_C) {
+			g_camera.setPosition(glm::vec3(0.0f, 10.0f, 30.0f));
+			g_camera.setCenter(ZERO_VECTOR);
+		}
+		else if (key == GLFW_KEY_T && nbPlanetsToRender < 9) {
+			nbPlanetsToRender++;
+		}
+		else if (key == GLFW_KEY_G && nbPlanetsToRender > 1) {
+			nbPlanetsToRender--;
 		}
 	}
 }
@@ -185,13 +206,11 @@ glm::vec3 computeCameraMovement(Camera camera, double xRot, double yRot) {
 	double xRotRad = -xRot;
 	double yRotRad = -yRot;
 
-	glm::vec3 centeredAtX = glm::vec3{ camCenter.x, 0.0, 0.0 };
-
 	glm::vec4 newCamPos =
-		MeshUtility::translate(centeredAtX) *
+		MeshUtility::translate(camCenter) *
 		MeshUtility::rotateAroundAxis(Y_ROTATION_VECTOR, xRotRad) *
 		MeshUtility::rotateAroundAxis(glm::vec3(1.0, 0.0, -camPos.x / camPos.z), yRotRad) *
-		MeshUtility::translate(-centeredAtX) *
+		MeshUtility::translate(-camCenter) *
 		glm::vec4{ camPos, 1.0 };
 
 	//std::cout << newCamPos.x << ", " << newCamPos.y << ", " << newCamPos.z << std::endl;
@@ -228,8 +247,13 @@ void mouseMotionCallback(GLFWwindow* window, double xpos, double ypos) {
 	lastX = xpos;
 	lastY = ypos;
 	if (rightMousePressed) {
-		g_camera.setPosition(g_camera.getPosition() + glm::vec3(-deltaX / 30.0, 0.0f, 0.0f));
-		g_camera.setCenter(g_camera.getCenter() + glm::vec3(-deltaX / 30.0, 0.0f, 0.0f));
+		glm::vec3 lookVector = g_camera.getPosition() - g_camera.getCenter();
+		glm::vec3 perpXYVector = glm::vec3(lookVector.x, 0.0f, lookVector.z);
+		double dx = -deltaX * lookVector.z / (glm::length(perpXYVector) * 30.0);
+		double dz = -deltaX * lookVector.x / (glm::length(perpXYVector) * 30.0);
+
+		g_camera.setPosition(g_camera.getPosition() + glm::vec3(dx, 0.0f, -dz));// -deltaY / 30.0));
+		g_camera.setCenter(g_camera.getCenter() + glm::vec3(dx, 0.0f, -dz));// -deltaY / 30.0));
 	}
 	if (leftMousePressed) {
 		if (invertedMouseControls)
@@ -255,9 +279,9 @@ void mouseScrollCallback(GLFWwindow* window, double xOffset, double yOffset)
 		yOffset = abs(1.0 / (yOffset * scrollScaling));
 	}
 
-	glm::vec3 newCamPos = g_camera.getPosition() - glm::vec3(g_camera.getCenter().x, 0.0, 0.0);
+	glm::vec3 newCamPos = g_camera.getPosition() - g_camera.getCenter();
 	newCamPos *= (yOffset);
-	newCamPos += glm::vec3(g_camera.getCenter().x, 0.0, 0.0);
+	newCamPos += g_camera.getCenter();
 	g_camera.setPosition(newCamPos);
 }
 
@@ -350,24 +374,21 @@ void loadShader(GLuint program, GLenum type, const std::string& shaderFilename) 
 void initGPUprogram() {
 	g_program = glCreateProgram(); // Create a GPU program, i.e., two central shaders of the graphics pipeline
 
-	loadShader(g_program, GL_VERTEX_SHADER, backoutPath + "vertexShader.glsl"); //TODO: FIND WHERE THE OUT OPTION IS
+	// The main GPU program handling streams of polygons
+	loadShader(g_program, GL_VERTEX_SHADER, backoutPath + "vertexShader.glsl");
 	loadShader(g_program, GL_FRAGMENT_SHADER, backoutPath + "fragmentShader.glsl");
-	glLinkProgram(g_program); // The main GPU program is ready to be handle streams of polygons
+	glLinkProgram(g_program);
 
-	texIDs.push_back(loadTextureFromFileToGPU("media/mercury.jpg"));
-	texIDs.push_back(loadTextureFromFileToGPU("media/venus.jpg"));
-	texIDs.push_back(loadTextureFromFileToGPU("media/earth.jpg"));
-	texIDs.push_back(loadTextureFromFileToGPU("media/mars.jpg"));
-	texIDs.push_back(loadTextureFromFileToGPU("media/jupiter.jpg"));
-	texIDs.push_back(loadTextureFromFileToGPU("media/saturn.jpg"));
-	texIDs.push_back(loadTextureFromFileToGPU("media/uranus.jpg"));
-	texIDs.push_back(loadTextureFromFileToGPU("media/neptune.jpg"));
-	texIDs.push_back(loadTextureFromFileToGPU("media/pluto.jpg"));
+	const std::vector<std::string> planetPaths = { "earth","mercury", "venus",  "mars", "jupiter", "saturn", "uranus", "neptune", "pluto" };
+	for each (std::string planetPath in planetPaths)
+	{
+		texIDs.push_back(loadTextureFromFileToGPU("media/" + planetPath + ".jpg"));
+	}
 
 	g_moonTexID = loadTextureFromFileToGPU("media/moon.jpg");
+	g_sunTexID = loadTextureFromFileToGPU("media/sun.jpg");
 
 	glUniform1i(glGetUniformLocation(g_program, "material.albedoTex"), 0);
-
 	glUseProgram(g_program);
 }
 
@@ -409,6 +430,9 @@ void initCPUgeometry() {
 	//moonSphere->setupPlanet(0);
 
 	sunSphere->setupSun();
+
+	// You will literally never see the difference if this is uncommented because the sun is a solid color
+	//sunSphere->rotateAround(sunSphere.get(), X_ROTATION_VECTOR, -M_PI / 2);
 	
 	/*earthSphere = std::make_shared<Mesh>(*sphereMesh);
 	earthSphere->defineRenderMethod();
@@ -418,12 +442,13 @@ void initCPUgeometry() {
 	std::srand(static_cast<unsigned int>(std::time(0)));
 	for (int i = 0; i < 9; i++)
 	{
+		orbitIncl[i] *= 2.0;
 		double orbitProgress = std::rand() % 135 / 180.0 * M_PI;
 		std::shared_ptr<Mesh> planet = std::make_shared<Mesh>(*sphereMesh);
 		planet->defineRenderMethod();
 		planet->move(setUpMatrix(kSizeSun * planetSizes[i], x_sun + orbitRadii[i], y_sun, z_sun));
 		planet->setupPlanet(-axialTilt[i], orbitProgress, orbitIncl[i]);
-		if (i == 2) moonSphere->setupPlanet(0, orbitProgress, 0); // moon needs to align with Earth
+		if (i == 0) moonSphere->setupPlanet(0, orbitProgress, 0); // moon needs to align with Earth
 		planets.push_back(planet);
 
 		axialTiltCos.push_back(cos(axialTilt[i]));
@@ -474,7 +499,7 @@ void render() {
 	glUniform3f(glGetUniformLocation(g_program, "camPos"), camPosition[0], camPosition[1], camPosition[2]);
 
 	glActiveTexture(GL_TEXTURE0);
-	for (int i = 0; i < 9; i++)
+	for (int i = 0; i < nbPlanetsToRender; i++)
 	{
 		glBindTexture(GL_TEXTURE_2D, texIDs[i]);
 		planets[i]->renderMesh();
@@ -483,8 +508,11 @@ void render() {
 	//earthSphere->renderMesh();
 
 	glBindTexture(GL_TEXTURE_2D, g_moonTexID);
-	sunSphere->renderMesh(); // Moon texture "good enough" to approximate sunspots and intense brightness
 	moonSphere->renderMesh();
+
+	// You will literally never see the difference if this is uncommented because the sun is a solid color
+	//glBindTexture(GL_TEXTURE_2D, g_sunTexID);
+	sunSphere->renderMesh();
 }
 
 // Update any accessible variable based on the current time
@@ -493,17 +521,19 @@ void update(const float currentTimeInSec) {
 	{
 		/*venusSphere->rotate(sunSphere.get(), Y_ROTATION_VECTOR, earthRotationSpeed / 1.6);
 		venusSphere->rotate(venusSphere.get(), glm::vec3(10.0, 177.0, 0.0), 2*earthRotationSpeed/3);*/
-		for (int i = 0; i < 9; i++)
+		for (int i = 0; i < nbPlanetsToRender; i++)
 		{
-			planets[i]->rotateAround(sunSphere.get(), glm::vec3(orbitInclSin[i], orbitInclCos[i], 0.0), 1 / (slowdownRatio * planetRotSun[i]));
-			planets[i]->rotateAround(planets[i].get(), glm::vec3(axialTiltSin[i], axialTiltCos[i], 0.0), 1 / (slowdownRatio * planetRotSun[i]));
+			planets[i]->rotateAround(sunSphere.get(), glm::vec3(orbitInclSin[i], orbitInclCos[i], 0.0), fpsSkip / (slowdownRatio * planetRotSun[i]));
+			planets[i]->rotateAround(planets[i].get(), glm::vec3(axialTiltSin[i], axialTiltCos[i], 0.0), fpsSkip / (slowdownRatio * planetRotItself[i]));
 		}
 		//earthSphere->rotateAround(sunSphere.get(), Y_ROTATION_VECTOR, planetRotSun[2] / 1000);
 		//earthSphere->rotateAround(earthSphere.get(), glm::vec3(10.0, axialTiltDegrees[2], 0.0), planetRotItself[2] / 1000);
 
 		// The moon moves with the Earth. The Earth moves with the sun. By the transitive property, the moon moves with the sun.
-		moonSphere->rotateAround(sunSphere.get(), Y_ROTATION_VECTOR, planetRotSun[2] / slowdownRatio);
-		moonSphere->rotateAround(planets[2].get(), Y_ROTATION_VECTOR, planetRotSun[2] / slowdownRatio * 2);
+		moonSphere->rotateAround(sunSphere.get(), Y_ROTATION_VECTOR, fpsSkip * planetRotSun[0] / slowdownRatio);
+		moonSphere->rotateAround(planets[0].get(), Y_ROTATION_VECTOR, fpsSkip * planetRotSun[0] / slowdownRatio * 2);
+
+		lastUpdateTime = currentTimeInSec;
 	}
 }
 
