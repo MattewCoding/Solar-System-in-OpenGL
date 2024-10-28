@@ -45,7 +45,7 @@ void mouseButtonCallback(GLFWwindow* window, int button, int action, int mods);
 void mouseMotionCallback(GLFWwindow* window, double xpos, double ypos);
 
 // constants
-const static float kSizeSun = 2;
+const static float kSizeSun = 1;
 const static float kSizeEarth = kSizeSun * 0.5;
 const static float kSizeMoon = kSizeEarth * 0.5;
 const static std::vector<float> planetSizes = { 0.5f, 0.19f, 0.47f, 0.27f, 5.6f, 4.72f, 2.0f, 1.94f, 0.09f};
@@ -248,12 +248,15 @@ void mouseMotionCallback(GLFWwindow* window, double xpos, double ypos) {
 	lastY = ypos;
 	if (rightMousePressed) {
 		glm::vec3 lookVector = g_camera.getPosition() - g_camera.getCenter();
-		glm::vec3 perpXYVector = glm::vec3(lookVector.x, 0.0f, lookVector.z);
-		double dx = -deltaX * lookVector.z / (glm::length(perpXYVector) * 30.0);
-		double dz = -deltaX * lookVector.x / (glm::length(perpXYVector) * 30.0);
 
-		g_camera.setPosition(g_camera.getPosition() + glm::vec3(dx, 0.0f, -dz));// -deltaY / 30.0));
-		g_camera.setCenter(g_camera.getCenter() + glm::vec3(dx, 0.0f, -dz));// -deltaY / 30.0));
+		glm::vec3 perpXYVector = glm::vec3(lookVector.x, 0.0f, lookVector.z);
+		float moveScaling = glm::length(perpXYVector) * 30.0;
+
+		double dx = -deltaX * lookVector.z / moveScaling;
+		double dz = deltaX * lookVector.x / moveScaling;
+
+		g_camera.setPosition(g_camera.getPosition() + glm::vec3(dx, deltaY / 30.0, dz));
+		g_camera.setCenter(g_camera.getCenter() + glm::vec3(dx, deltaY / 30.0, dz));
 	}
 	if (leftMousePressed) {
 		if (invertedMouseControls)
@@ -308,7 +311,7 @@ void initGLFW() {
 
 	// Create the window
 	g_window = glfwCreateWindow(
-		1024, 768,
+		1536, 864,
 		"Interactive 3D Applications (OpenGL) - Simple Solar System",
 		nullptr, nullptr);
 	if (!g_window) {
