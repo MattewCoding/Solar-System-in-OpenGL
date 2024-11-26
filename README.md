@@ -27,7 +27,7 @@ This project is a 3D simulation of the Solar System, created using OpenGL. It de
 - **G**: Decrease amount of planets to render
 
 ## Screenshots
-(Include screenshots of the Solar System simulation here)
+[Solar System Example Image](5_end.png)
 
 ## License
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
